@@ -1,0 +1,13 @@
+[Unit]
+Description=Mini-SOC: create the Greenbone scan task once the feed is loaded
+After=docker.service network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/minisoc/greenbone-setup-scan.sh
+RemainAfterExit=yes
+TimeoutStartSec=infinity
+
+[Install]
+WantedBy=multi-user.target
