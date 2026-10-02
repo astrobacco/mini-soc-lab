@@ -1,0 +1,33 @@
+%YAML 1.1
+---
+# Mini-SOC overrides for Suricata (included at the end of suricata.yaml).
+
+# HOME_NET / EXTERNAL_NET are set in suricata.yaml itself by install.sh:
+# an include would replace the whole "vars" section, not just these two.
+
+af-packet:
+  - interface: {{SNIFF_IF}}
+    cluster-id: 99
+    cluster-type: cluster_flow
+    defrag: yes
+    # VirtualBox delivers packets with unfinished checksums - don't drop them
+    checksum-checks: no
+
+outputs:
+  # Alerts only, one JSON object per line: this is what Wazuh reads.
+  - eve-log:
+      enabled: yes
+      filetype: regular
+      filename: eve-alerts.json
+      types:
+        - alert:
+            tagged-packets: no
+  # Human-readable alert log for quick checks: tail -f /var/log/suricata/fast.log
+  - fast:
+      enabled: yes
+      filename: fast.log
+      append: yes
+  - stats:
+      enabled: yes
+      filename: stats.log
+      interval: 60
