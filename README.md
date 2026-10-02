@@ -68,16 +68,48 @@ vagrant ssh wazuh     # shell on a VM
 
 Settings (which VMs, memory, versions, ports) are in [`lab.conf`](lab.conf).
 
-## Red team exercise
+## Red team exercise – try it yourself
+
+A quick walkthrough to show the lab working end to end, attacker to case
+file. Open two terminals: one on `kali`, one on `wazuh`'s dashboard in the
+browser. `target` runs DVWA (Damn Vulnerable Web Application) at
+`http://10.10.20.10/dvwa/`, login `admin` / `password`, security level
+already set to "low".
 
 ```bash
-vagrant ssh kali      # attacker shell, see ~/EXERCISES.txt for a first walkthrough
+vagrant ssh kali
 ```
 
-Attack `target` (10.10.20.10, DVWA login `admin` / `password`) from `kali` and
-watch the alerts show up live in Wazuh and DFIR-IRIS: the sensor VM sees the
-traffic passively and raises the alert, which the manager correlates and
-forwards automatically.
+1. **Recon** – find the target and what it's running:
+   ```bash
+   nmap -sV 10.10.20.10
+   ```
+2. **Web scan** – look for known paths and misconfigurations:
+   ```bash
+   nikto -h http://10.10.20.10/dvwa/
+   ```
+3. **SQL injection** – DVWA's SQLi page is deliberately broken; feed it a
+   classic payload (either in the browser's "user ID" field or with curl):
+   ```bash
+   curl "http://10.10.20.10/dvwa/vulnerabilities/sqli/?id=1%27+OR+%271%27=%271&Submit=Submit" \
+        -H "Cookie: security=low; PHPSESSID=<your session id>"
+   ```
+   or point `sqlmap` at the same URL for an automated run.
+4. **File upload / web shell** – DVWA's upload page accepts a `.php` file
+   with no checks; uploading one trips the file-integrity monitor instantly
+   (the Wazuh agent on `target` watches `/var/www/html` in real time).
+5. **Watch it land**: open the Wazuh dashboard
+   (`https://localhost:8444`, *Security events*) and filter by rule group
+   `minisoc_ids` or `web` – the port scan shows up as "Possible network scan",
+   the SQL injection and file upload as high-severity Suricata/web alerts.
+   Anything level 10 or higher appears automatically as a new alert in
+   DFIR-IRIS (`https://localhost:8445`) with the attacker's IP already filled
+   in as an indicator of compromise and `target` as the affected asset –
+   ready to be turned into a documented case.
+
+`~/EXERCISES.txt` on the `kali` VM has the short version of steps 1–3 as a
+cheat sheet. `nmap`, `nikto`, `sqlmap`, `hydra` and `gobuster` are
+pre-installed.
 
 ## Documentation
 

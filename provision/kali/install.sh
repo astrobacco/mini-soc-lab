@@ -15,7 +15,15 @@ Mini-SOC red team exercises (target: 10.10.20.10, DVWA login admin / password)
 2. Web scan:       nikto -h http://10.10.20.10/dvwa/
 3. SQL injection:  sqlmap -u "http://10.10.20.10/dvwa/vulnerabilities/sqli/?id=1&Submit=Submit" \
                      --cookie="PHPSESSID=<your session>; security=low" --batch
-Then check what Suricata/Wazuh raised in the Wazuh dashboard and DFIR-IRIS.
+4. File upload:    log in to DVWA, open "File Upload", upload any .php file -
+                     the Wazuh agent on target watches /var/www/html in real
+                     time (FIM) and alerts the moment the file lands.
+Then check what Suricata/Wazuh raised:
+  - Wazuh dashboard (https://localhost:8444) -> Security events, filter by
+    rule group "minisoc_ids" or "web".
+  - DFIR-IRIS (https://localhost:8445): level >= 10 alerts become cases
+    automatically, with your IP as an indicator and target as the asset.
+See the README's "Red team exercise" section for the full walkthrough.
 TXT
 chown vagrant:vagrant /home/vagrant/EXERCISES.txt
 
