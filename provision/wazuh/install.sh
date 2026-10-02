@@ -73,7 +73,7 @@ log "Checking the rule set"
 "${OSSEC}/bin/wazuh-analysisd" -t >/dev/null 2>&1 || { "${OSSEC}/bin/wazuh-analysisd" -t; die "rule/config test failed"; }
 
 systemctl restart wazuh-manager
-wait_for "Wazuh API" 180 curl -sfk -o /dev/null -w '%{http_code}' https://127.0.0.1:55000/
+wait_for "Wazuh API" 180 bash -c "curl -sk -o /dev/null -w '%{http_code}' https://127.0.0.1:55000/ | grep -q 401"
 wait_for "Wazuh dashboard" 300 curl -sfk -o /dev/null https://127.0.0.1/app/login
 
 rm -rf "${FILES}"
