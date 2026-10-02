@@ -6,11 +6,24 @@ set -euo pipefail
 source /opt/minisoc/lib.sh
 FILES=/tmp/minisoc-soc
 
+# ---------------------------------------------------------------- disk
+# Ubuntu's installer only gives the root volume half of the disk; Greenbone's
+# feeds and the Docker images need the rest.
+if vgs --noheadings -o vg_free --units g ubuntu-vg 2>/dev/null | awk '{exit !($1+0 > 1)}'; then
+    log "Growing the root file system to the full disk"
+    lvextend -q -r -l +100%FREE /dev/ubuntu-vg/ubuntu-lv >/dev/null
+fi
+
 # ---------------------------------------------------------------- docker
 if ! command -v docker >/dev/null; then
     log "Installing Docker"
     apt_install docker.io docker-compose-v2 git
     usermod -aG docker vagrant
+fi
+# at most 2 parallel layer downloads (see pull_images in lib.sh)
+if [ ! -f /etc/docker/daemon.json ]; then
+    echo '{ "max-concurrent-downloads": 2 }' > /etc/docker/daemon.json
+    systemctl restart docker
 fi
 systemctl enable --now docker >/dev/null
 
@@ -35,7 +48,8 @@ set_env IRIS_ADM_API_KEY            "${IRIS_API_KEY}"
 chmod 600 "${IRIS_DIR}/.env"
 
 log "Starting DFIR-IRIS (first start downloads ~1.5 GB of images)"
-( cd "$IRIS_DIR" && docker compose pull -q && docker compose up -d --quiet-pull ) >/dev/null
+pull_images "$IRIS_DIR"
+( cd "$IRIS_DIR" && docker compose up -d ) >/dev/null 2>&1
 wait_for "DFIR-IRIS web interface" 600 curl -sfk -o /dev/null https://127.0.0.1/login
 wait_for "DFIR-IRIS API key" 120 curl -sfk -H "Authorization: Bearer ${IRIS_API_KEY}" https://127.0.0.1/api/ping
 
@@ -45,12 +59,20 @@ mkdir -p "$GB_DIR"
 if [ ! -f "${GB_DIR}/docker-compose.yml" ]; then
     log "Downloading Greenbone Community Edition"
     curl -fsSL -o "${GB_DIR}/docker-compose.yml" https://greenbone.github.io/docs/latest/_static/docker-compose.yml
-    # IRIS already uses 443 on this VM: publish the Greenbone web UI on 9392 only,
-    # on all interfaces so it can be reached from the host (via port forward).
-    sed -i -e '/- 127.0.0.1:443:443/d' -e 's|- 127.0.0.1:9392:9392|- 9392:9392|' "${GB_DIR}/docker-compose.yml"
+    # IRIS already uses 443 on this VM. Greenbone's own 9392 only redirects to
+    # HTTPS on 443, so publish Greenbone's HTTPS port as 9392 instead (on all
+    # interfaces, so the host can reach it through the port forward).
+    sed -i -e '/- 127.0.0.1:9392:9392/d' -e 's|- 127.0.0.1:443:443|- 9392:443|' "${GB_DIR}/docker-compose.yml"
 fi
 log "Starting Greenbone (downloads ~3 GB of images; vulnerability feeds keep syncing for ~30-60 min afterwards)"
-( cd "$GB_DIR" && docker compose pull -q && docker compose up -d --quiet-pull ) >/dev/null
+pull_images "$GB_DIR"
+# The feed containers first copy GBs of data into volumes and report
+# "unhealthy" until they are done; compose gives up on that, so retry.
+start=$SECONDS
+until ( cd "$GB_DIR" && docker compose up -d ) >/tmp/greenbone-up.log 2>&1; do
+    (( SECONDS - start > 1800 )) && { tail -5 /tmp/greenbone-up.log; die "Greenbone containers did not start"; }
+    sleep 30
+done
 
 log "Waiting for the Greenbone manager (gvmd)"
 wait_for "gvmd" 900 bash -c "cd ${GB_DIR} && docker compose exec -T -u gvmd gvmd gvmd --get-users | grep -qx admin"

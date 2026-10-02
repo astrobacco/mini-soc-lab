@@ -24,6 +24,20 @@ wait_for() {
     done
 }
 
+# Pull a compose project's images one by one. Parallel pulls through the
+# VirtualBox NAT adapter tend to stall forever, single pulls don't.
+pull_images() {
+    local dir=$1 img i
+    for img in $(cd "$dir" && docker compose config --images | sort -u); do
+        docker image inspect "$img" >/dev/null 2>&1 && continue
+        for i in 1 2 3 4 5; do
+            timeout 900 docker pull -q "$img" >/dev/null 2>&1 && break
+            [ "$i" = 5 ] && die "could not download image $img"
+            log "pull of $img stalled or failed (attempt $i), retrying"
+        done
+    done
+}
+
 install_wazuh_agent() {
     local group=$1
     if ! dpkg -s wazuh-agent >/dev/null 2>&1; then
