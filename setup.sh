@@ -133,7 +133,10 @@ summary() {
         echo "Browsers will warn about the certificates: the lab uses self-signed"
         echo "certificates, so accept the warning (Advanced > Continue)."
         echo
-        echo "Shell access:   vagrant ssh <fw|wazuh|soc|sensor|target|kali>"
+        local vms="fw|wazuh"
+        enabled SOC && vms+="|soc"; enabled SENSOR && vms+="|sensor"
+        enabled TARGET && vms+="|target"; enabled KALI && vms+="|kali"
+        echo "Shell access:   vagrant ssh <${vms}>"
     } > "$ACCESS"
     chmod 600 "$ACCESS"
     echo; cat "$ACCESS"; echo

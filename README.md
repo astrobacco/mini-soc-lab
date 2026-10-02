@@ -40,9 +40,11 @@ cd minisoc-project
 ./setup.sh
 ```
 
-The first run takes 45–90 minutes. At the end it prints where to log in; the
-same overview is saved in `.lab/ACCESS.txt` together with the generated lab
-password.
+A clean build of the four finished VMs took 26 minutes on a laptop
+(i7-10510U, 32 GB RAM); expect longer with a slow internet connection. At the
+end it prints where to log in; the same overview is saved in `.lab/ACCESS.txt`
+together with the generated lab password. Greenbone keeps loading its
+vulnerability feed for another 30–60 minutes in the background.
 
 | Tool | Address | User |
 |---|---|---|
