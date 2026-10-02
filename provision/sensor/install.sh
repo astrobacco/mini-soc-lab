@@ -62,6 +62,10 @@ EOF
 log "Testing the configuration"
 suricata -T -c /etc/suricata/suricata.yaml >/tmp/suricata-test.log 2>&1 \
     || { tail -20 /tmp/suricata-test.log; die "Suricata configuration test failed"; }
+# The test above runs as root and - even in test mode - opens the configured
+# log files once to validate them, leaving them owned by root. The service
+# itself runs as user "suricata" and would then fail to open them again.
+chown -R suricata:suricata /var/log/suricata
 systemctl enable suricata >/dev/null
 systemctl restart suricata
 wait_for "Suricata to load its rules" 300 test -S /var/run/suricata/suricata-command.socket

@@ -14,8 +14,8 @@ Final project (Abschlussprojekt) · ICT Warrior Academy · Felix Rechsteiner
 | `wazuh` | Wazuh | SIEM: collects logs and alerts, correlates, raises alarms |
 | `soc` | Greenbone CE + DFIR-IRIS | Vulnerability scanning · alert and case management |
 | `sensor` | Suricata | Network IDS, listens silently on the server network |
-| `target` | Ubuntu + Apache | Practice server (the victim) – *in progress* |
-| `kali` | Kali Linux | Attacker for red team exercises – *in progress* |
+| `target` | Ubuntu + Apache + DVWA | Practice server (the victim) |
+| `kali` | Kali Linux | Attacker for red team exercises |
 
 Serious Wazuh alerts (level 10+) automatically become alerts in DFIR-IRIS, with
 the attacker IP and the affected machine already filled in.
@@ -40,8 +40,9 @@ cd minisoc-project
 ./setup.sh
 ```
 
-A clean build of the four finished VMs took 26 minutes on a laptop
-(i7-10510U, 32 GB RAM); expect longer with a slow internet connection. At the
+A clean build of the four core VMs (fw, wazuh, soc, sensor) took 26 minutes on
+a laptop (i7-10510U, 32 GB RAM); target and kali add a few more minutes each.
+Expect longer with a slow internet connection. At the
 end it prints where to log in; the same overview is saved in `.lab/ACCESS.txt`
 together with the generated lab password. Greenbone keeps loading its
 vulnerability feed for another 30–60 minutes in the background.
@@ -66,6 +67,17 @@ vagrant ssh wazuh     # shell on a VM
 ```
 
 Settings (which VMs, memory, versions, ports) are in [`lab.conf`](lab.conf).
+
+## Red team exercise
+
+```bash
+vagrant ssh kali      # attacker shell, see ~/EXERCISES.txt for a first walkthrough
+```
+
+Attack `target` (10.10.20.10, DVWA login `admin` / `password`) from `kali` and
+watch the alerts show up live in Wazuh and DFIR-IRIS: the sensor VM sees the
+traffic passively and raises the alert, which the manager correlates and
+forwards automatically.
 
 ## Documentation
 
