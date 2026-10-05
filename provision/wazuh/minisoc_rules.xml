@@ -39,4 +39,26 @@
     <group>ids,recon,minisoc_ids_correlated,</group>
   </rule>
 
+  <!-- vsftpd (see exercises/01-ftp-webshell): anonymous access is disabled by default,
+       these only fire while that exercise's vulnerability is deliberately enabled.
+       Chained onto Wazuh's built-in vsftpd rules (11402 OK LOGIN, 11404 OK UPLOAD,
+       both from ruleset/rules/0185-vsftpd_rules.xml) rather than re-matching the
+       log from scratch, since a standalone rule never gets evaluated once the
+       built-in vsftpd decoder/rule chain has already claimed the event. -->
+  <rule id="100120" level="10">
+    <if_sid>11402</if_sid>
+    <match>anon password</match>
+    <description>FTP: anonymous login succeeded</description>
+    <mitre><id>T1078.001</id></mitre>
+    <group>ftp,minisoc_ftp,</group>
+  </rule>
+
+  <rule id="100121" level="12">
+    <if_sid>11404</if_sid>
+    <regex>\.php</regex>
+    <description>FTP: a PHP file was uploaded via anonymous FTP - possible web shell!</description>
+    <mitre><id>T1505.003</id></mitre>
+    <group>ftp,web,minisoc_ftp_webshell,</group>
+  </rule>
+
 </group>

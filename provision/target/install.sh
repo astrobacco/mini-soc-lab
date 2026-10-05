@@ -4,14 +4,19 @@
 # well-known training app. It is deliberately insecure - it only ever lives on
 # the isolated lab network. Apache logs and /var/www/html are watched by the
 # Wazuh agent (agent group "linux-servers").
+#
+# Also installs vsftpd for the "01-ftp-webshell" blue-team exercise
+# (see exercises/01-ftp-webshell/). It ships locked down (no anonymous
+# access) - the exercise's own enable-vulnerability.sh turns the
+# misconfiguration on and fix.sh turns it back off.
 set -euo pipefail
 source /opt/minisoc/lib.sh
 
 DVWA_DIR=/var/www/html/dvwa
 DB_PASS="${LAB_PASSWORD}"
 
-log "Installing Apache, PHP and MariaDB"
-apt_install apache2 php php-mysqli php-gd libapache2-mod-php mariadb-server git
+log "Installing Apache, PHP, MariaDB and vsftpd"
+apt_install apache2 php php-mysqli php-gd libapache2-mod-php mariadb-server git vsftpd
 
 if [ ! -d "${DVWA_DIR}/.git" ]; then
     log "Downloading DVWA"
@@ -54,6 +59,29 @@ curl -fsS -o /dev/null -c /tmp/dvwa.cookie http://localhost/dvwa/setup.php
 TOKEN=$(curl -fsS -b /tmp/dvwa.cookie -c /tmp/dvwa.cookie http://localhost/dvwa/setup.php | sed -n "s/.*user_token' value='\([^']*\)'.*/\1/p" | head -1)
 curl -fsS -o /dev/null -b /tmp/dvwa.cookie -d "create_db=Create+/+Reset+Database&user_token=${TOKEN}" http://localhost/dvwa/setup.php
 rm -f /tmp/dvwa.cookie
+
+# ---------------------------------------------------------------- vsftpd (locked down by default)
+log "Configuring vsftpd (anonymous access disabled)"
+cat > /etc/vsftpd.conf <<'EOF'
+# Mini-SOC target: locked-down baseline for vsftpd.
+# exercises/01-ftp-webshell/enable-vulnerability.sh flips anonymous_enable/anon_upload_enable
+# on for that exercise; fix.sh restores this file.
+listen=YES
+listen_ipv6=NO
+anonymous_enable=NO
+local_enable=YES
+write_enable=NO
+dirmessage_enable=YES
+xferlog_enable=YES
+xferlog_std_format=NO
+vsftpd_log_file=/var/log/vsftpd.log
+connect_from_port_20=YES
+secure_chroot_dir=/var/run/vsftpd/empty
+pam_service_name=vsftpd
+EOF
+touch /var/log/vsftpd.log
+systemctl enable vsftpd >/dev/null
+systemctl restart vsftpd
 
 # ---------------------------------------------------------------- wazuh agent
 install_wazuh_agent linux-servers

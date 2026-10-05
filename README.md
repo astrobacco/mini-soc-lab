@@ -111,6 +111,18 @@ vagrant ssh kali
 cheat sheet. `nmap`, `nikto`, `sqlmap`, `hydra` and `gobuster` are
 pre-installed.
 
+## Guided blue-team exercises
+
+[`exercises/`](exercises/) has full, scripted "zero to fixed" scenarios: a
+vulnerability gets switched on, an attack script runs against it, and you
+(the blue team) have to spot it in Wazuh, confirm it with a Greenbone scan
+and fix it, without being told in advance what happened.
+
+- [`exercises/01-ftp-webshell/`](exercises/01-ftp-webshell/) – anonymous FTP
+  with a writable folder inside the web root leads to a PHP web shell and
+  real code execution. Caught by Wazuh's file-integrity monitoring and two
+  custom FTP rules, confirmed by Greenbone, fixed with one script.
+
 ## Documentation
 
 The full project documentation is in
