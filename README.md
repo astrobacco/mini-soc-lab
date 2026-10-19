@@ -26,6 +26,14 @@ the attacker IP and the affected machine already filled in.
                  \________________ fw (OPNsense) __________________/
 ```
 
+The full attack → detection → response workflow, step by step, with exactly
+where each piece of data gets written along the way:
+
+![Mini-SOC workflow: attack, detection and response](docs/diagram-workflow.svg)
+
+(source: [`docs/gen-diagram.py`](docs/gen-diagram.py) – re-run it after
+changing the workflow it describes)
+
 ## Network isolation & safety
 
 The lab is designed so that nothing inside it can reach your real network,

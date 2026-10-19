@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1007" viewBox="0 0 1000 1007" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif"><rect x="0" y="0" width="1000" height="1007" fill="#ffffff"/><defs><marker id="arrowhead" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto"><polygon points="0 0, 10 4, 0 8" fill="#394351"/></marker></defs>
+<text x="500.0" y="42" font-size="23" fill="#1b2229" font-weight="bold" text-anchor="middle" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="normal">Mini-SOC — attack, detection &amp; response workflow</text>
+<text x="500.0" y="66" font-size="14" fill="#5b6572" font-weight="normal" text-anchor="middle" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="normal">What happens, in order, and exactly where each piece of data is written</text>
+<rect x="40" y="95" width="920" height="104" rx="10" fill="#fdeceb" stroke="#c9d2dc"/>
+<text x="60" y="117" font-size="13" fill="#8a3b33" font-weight="bold" text-anchor="start" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="normal">RED  10.10.66.0/24</text>
+<rect x="405.0" y="123" width="190" height="64" rx="8" fill="#ffffff" stroke="#2c3440" stroke-width="1.6"/>
+<text x="500.0" y="146" font-size="15" fill="#1b2229" font-weight="bold" text-anchor="middle" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="normal">kali</text>
+<text x="500.0" y="165" font-size="12" fill="#5b6572" font-weight="normal" text-anchor="middle" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="normal">attacker — nmap, nikto, sqlmap,</text>
+<text x="500.0" y="180" font-size="12" fill="#5b6572" font-weight="normal" text-anchor="middle" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="normal">FTP client, curl</text>
+<rect x="400.0" y="243" width="200" height="54" rx="8" fill="#ffffff" stroke="#2c3440" stroke-width="1.6"/>
+<text x="500.0" y="266" font-size="15" fill="#1b2229" font-weight="bold" text-anchor="middle" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="normal">fw  (OPNsense)</text>
+<text x="500.0" y="285" font-size="12" fill="#5b6572" font-weight="normal" text-anchor="middle" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="normal">routes RED → SERVERS, logs the match</text>
+<line x1="500.0" y1="187" x2="500.0" y2="243" stroke="#394351" stroke-width="2" marker-end="url(#arrowhead)"/>
+<circle cx="500.0" cy="191.48" r="13" fill="#2c3440"/>
+<text x="500.0" y="196.48" font-size="13" fill="#ffffff" font-weight="bold" text-anchor="middle" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="normal">1</text>
+<text x="512.0" y="206.2" font-size="13" fill="#5b6572" font-weight="normal" text-anchor="start" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="normal">attack traffic</text>
+<text x="512.0" y="222.2" font-size="13" fill="#5b6572" font-weight="normal" text-anchor="start" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="normal">(e.g. FTP upload, SQLi)</text>
+<rect x="40" y="333" width="920" height="104" rx="10" fill="#fef6e7" stroke="#c9d2dc"/>
+<text x="60" y="355" font-size="13" fill="#8a6a1f" font-weight="bold" text-anchor="start" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="normal">SERVERS  10.10.20.0/24</text>
+<rect x="370.0" y="365" width="260" height="58" rx="8" fill="#ffffff" stroke="#2c3440" stroke-width="1.6"/>
+<text x="500.0" y="388" font-size="15" fill="#1b2229" font-weight="bold" text-anchor="middle" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="normal">target</text>
+<text x="500.0" y="407" font-size="12" fill="#5b6572" font-weight="normal" text-anchor="middle" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="normal">Apache + DVWA, vsftpd</text>
+<text x="500.0" y="422" font-size="12" fill="#5b6572" font-weight="normal" text-anchor="middle" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="normal">Wazuh agent (FIM + log watch)</text>
+<line x1="500.0" y1="297" x2="500.0" y2="365" stroke="#394351" stroke-width="2" marker-end="url(#arrowhead)"/>
+<rect x="40" y="477" width="920" height="470" rx="10" fill="#eaf1fb" stroke="#c9d2dc"/>
+<text x="60" y="499" font-size="13" fill="#2c5a94" font-weight="bold" text-anchor="start" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="normal">SOC  10.10.10.0/24</text>
+<rect x="60" y="517" width="230" height="62" rx="8" fill="#ffffff" stroke="#2c3440" stroke-width="1.6"/>
+<text x="175.0" y="540" font-size="15" fill="#1b2229" font-weight="bold" text-anchor="middle" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="normal">sensor  (Suricata)</text>
+<text x="175.0" y="559" font-size="12" fill="#5b6572" font-weight="normal" text-anchor="middle" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="normal">passive tap on SERVERS —</text>
+<text x="175.0" y="574" font-size="12" fill="#5b6572" font-weight="normal" text-anchor="middle" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="normal">sees the wire, has no IP</text>
+<circle cx="500.0" cy="313" r="4" fill="#394351"/>
+<path d="M 497.0 313 C 380.0 323, 410 518.0, 298 548.0" fill="none" stroke="#394351" stroke-width="2" stroke-dasharray="6,5" marker-end="url(#arrowhead)"/>
+<text x="320" y="493.0" font-size="13" fill="#5b6572" font-weight="normal" text-anchor="start" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="normal">taps the same wire</text>
+<text x="320" y="509.0" font-size="13" fill="#5b6572" font-weight="normal" text-anchor="start" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="normal">→ eve-alerts.json</text>
+<circle cx="430.0" cy="333" r="13" fill="#2c3440"/>
+<text x="430.0" y="338" font-size="13" fill="#ffffff" font-weight="bold" text-anchor="middle" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="normal">2</text>
+<rect x="400.0" y="657" width="200" height="64" rx="8" fill="#ffffff" stroke="#2c3440" stroke-width="1.6"/>
+<text x="500.0" y="680" font-size="15" fill="#1b2229" font-weight="bold" text-anchor="middle" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="normal">wazuh  (manager)</text>
+<text x="500.0" y="699" font-size="12" fill="#5b6572" font-weight="normal" text-anchor="middle" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="normal">correlates + rates (custom rules)</text>
+<text x="500.0" y="714" font-size="12" fill="#5b6572" font-weight="normal" text-anchor="middle" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="normal">→ alerts.json</text>
+<path d="M 583.2 423 C 643.2 503, 690.0 616.2, 600.0 676.2" fill="none" stroke="#394351" stroke-width="2" marker-end="url(#arrowhead)"/>
+<text x="620.0" y="606.2" font-size="13" fill="#5b6572" font-weight="normal" text-anchor="start" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="normal">agent: Apache/vsftpd logs +</text>
+<text x="620.0" y="622.2" font-size="13" fill="#5b6572" font-weight="normal" text-anchor="start" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="normal">FIM on /var/www/html</text>
+<text x="620.0" y="638.2" font-size="13" fill="#5b6572" font-weight="normal" text-anchor="start" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="normal">→ :1514/1515</text>
+<circle cx="613.2" cy="448" r="13" fill="#2c3440"/>
+<text x="613.2" y="453" font-size="13" fill="#ffffff" font-weight="bold" text-anchor="middle" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="normal">3</text>
+<line x1="175.0" y1="579" x2="400.0" y2="689.0" stroke="#394351" stroke-width="2" marker-end="url(#arrowhead)"/>
+<rect x="60" y="777" width="240" height="66" rx="8" fill="#ffffff" stroke="#2c3440" stroke-width="1.6"/>
+<text x="180.0" y="800" font-size="15" fill="#1b2229" font-weight="bold" text-anchor="middle" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="normal">soc — DFIR-IRIS</text>
+<text x="180.0" y="819" font-size="12" fill="#5b6572" font-weight="normal" text-anchor="middle" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="normal">case management</text>
+<rect x="700" y="777" width="240" height="66" rx="8" fill="#ffffff" stroke="#2c3440" stroke-width="1.6"/>
+<text x="820.0" y="800" font-size="15" fill="#1b2229" font-weight="bold" text-anchor="middle" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="normal">soc — Greenbone</text>
+<text x="820.0" y="819" font-size="12" fill="#5b6572" font-weight="normal" text-anchor="middle" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="normal">vulnerability scanning</text>
+<path d="M 450.0 721 C 410.0 761, 260.0 737, 240.0 777" fill="none" stroke="#394351" stroke-width="2" marker-end="url(#arrowhead)"/>
+<text x="316" y="751" font-size="13" fill="#5b6572" font-weight="normal" text-anchor="start" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="normal">level ≥ 10 alerts auto-forwarded</text>
+<text x="316" y="767" font-size="13" fill="#5b6572" font-weight="normal" text-anchor="start" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="normal">(custom-iris.py) → new Alert</text>
+<circle cx="435.0" cy="776" r="13" fill="#2c3440"/>
+<text x="435.0" y="781" font-size="13" fill="#ffffff" font-weight="bold" text-anchor="middle" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="normal">4</text>
+<rect x="60" y="872" width="240" height="58" rx="8" fill="#ffffff" stroke="#2c3440" stroke-width="1.6"/>
+<text x="180.0" y="895" font-size="15" fill="#1b2229" font-weight="bold" text-anchor="middle" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="normal">analyst</text>
+<text x="180.0" y="914" font-size="12" fill="#5b6572" font-weight="normal" text-anchor="middle" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="normal">escalates Alert → Case,</text>
+<text x="180.0" y="929" font-size="12" fill="#5b6572" font-weight="normal" text-anchor="middle" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="normal">documents the incident</text>
+<line x1="180.0" y1="843" x2="180.0" y2="872" stroke="#394351" stroke-width="2" marker-end="url(#arrowhead)"/>
+<circle cx="180.0" cy="845.32" r="13" fill="#2c3440"/>
+<text x="180.0" y="850.32" font-size="13" fill="#ffffff" font-weight="bold" text-anchor="middle" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="normal">5</text>
+<path d="M 820.0 777 C 820.0 667, 780.0 454.0, 640.0 394.0" fill="none" stroke="#394351" stroke-width="2" marker-end="url(#arrowhead)"/>
+<circle cx="820.0" cy="777" r="13" fill="#2c3440"/>
+<text x="820.0" y="782" font-size="13" fill="#ffffff" font-weight="bold" text-anchor="middle" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="normal">6</text>
+<text x="648.0" y="451" font-size="13" fill="#5b6572" font-weight="normal" text-anchor="start" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="normal">on-demand scan confirms the root</text>
+<text x="648.0" y="467" font-size="13" fill="#5b6572" font-weight="normal" text-anchor="start" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="normal">cause (&quot;Anonymous FTP Login&quot;,</text>
+<text x="648.0" y="483" font-size="13" fill="#5b6572" font-weight="normal" text-anchor="start" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="normal">&quot;FTP Writeable Directories&quot;)</text>
+<rect x="700" y="872" width="240" height="58" rx="8" fill="#ffffff" stroke="#2c3440" stroke-width="1.6"/>
+<text x="820.0" y="895" font-size="15" fill="#1b2229" font-weight="bold" text-anchor="middle" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="normal">fix applied</text>
+<text x="820.0" y="914" font-size="12" fill="#5b6572" font-weight="normal" text-anchor="middle" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="normal">e.g. fix.sh on target,</text>
+<text x="820.0" y="929" font-size="12" fill="#5b6572" font-weight="normal" text-anchor="middle" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="normal">then: rescan confirms clean</text>
+<line x1="820.0" y1="843" x2="820.0" y2="872" stroke="#394351" stroke-width="2" marker-end="url(#arrowhead)"/>
+<circle cx="820.0" cy="845.32" r="13" fill="#2c3440"/>
+<text x="820.0" y="850.32" font-size="13" fill="#ffffff" font-weight="bold" text-anchor="middle" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="normal">7</text>
+<line x1="300" y1="903.0" x2="700" y2="903.0" stroke="#394351" stroke-width="2" stroke-dasharray="6,5" marker-end="url(#arrowhead)"/>
+<circle cx="332.0" cy="903.0" r="13" fill="#2c3440"/>
+<text x="332.0" y="908.0" font-size="13" fill="#ffffff" font-weight="bold" text-anchor="middle" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="normal">8</text>
+<text x="430.0" y="897.0" font-size="13" fill="#5b6572" font-weight="normal" text-anchor="middle" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="normal">analyst directs the fix</text>
+<text x="500.0" y="983" font-size="13" fill="#5b6572" font-weight="normal" text-anchor="middle" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="italic">See exercises/01-ftp-webshell/ for this exact sequence, run end to end against the real lab.</text></svg>
