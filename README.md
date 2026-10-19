@@ -87,14 +87,17 @@ end it prints where to log in; the same overview is saved in `.lab/ACCESS.txt`
 together with the generated lab password. Greenbone keeps loading its
 vulnerability feed for another 30–60 minutes in the background.
 
-| Tool | Address | User |
-|---|---|---|
-| OPNsense | https://localhost:8443 | root |
-| Wazuh | https://localhost:8444 | admin |
-| DFIR-IRIS | https://localhost:8445 | administrator |
-| Greenbone | https://localhost:9392 | admin |
+| Tool | Address | User | New here? |
+|---|---|---|---|
+| OPNsense | https://localhost:8443 | root | [navigation guide](docs/guides/opnsense.md) |
+| Wazuh | https://localhost:8444 | admin | [navigation guide](docs/guides/wazuh.md) |
+| DFIR-IRIS | https://localhost:8445 | administrator | [navigation guide](docs/guides/dfir-iris.md) |
+| Greenbone | https://localhost:9392 | admin | [navigation guide](docs/guides/greenbone.md) |
 
 The lab uses self-signed certificates, so your browser will show a warning.
+Each guide covers where the useful stuff actually is, what to filter/search
+for in this specific lab, and what the exercise 01 walkthrough looks like in
+that particular tool.
 
 ## Everyday use
 
