@@ -113,11 +113,12 @@ nikto -h http://10.10.20.10/dvwa/ # any obviously bad paths/configs?
 
 ## 6. Watching it get caught
 
-Open **Wazuh** (`https://localhost:8444`) → **Explore → Security events**.
-Widen the time range in the top-right corner if it looks empty (defaults
-to the last 15 minutes). You should see entries like "Common web attack"
-or "Web server 400 error code" with a timestamp matching what you just
-did. Click one to expand it and see exactly what Wazuh saw.
+Open **Wazuh** (`https://localhost:8444`) → **Discover** (in the left
+menu) → select the **`wazuh-alerts-*`** index pattern if it isn't already
+selected. Widen the time range in the top-right corner if it looks empty
+(defaults to the last 15 minutes). You should see entries like "Common
+web attack" or "Web server 400 error code" with a timestamp matching what
+you just did. Click one to expand it and see exactly what Wazuh saw.
 
 Anything Wazuh rates level 10 or higher gets forwarded automatically to
 **DFIR-IRIS** (`https://localhost:8445`) → **Alerts** – with your IP

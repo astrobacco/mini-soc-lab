@@ -177,8 +177,9 @@ vagrant ssh kali
 
 ### Watch it land
 
-Open the Wazuh dashboard (`https://localhost:8444`, *Security events*) and
-filter by rule group `minisoc_ids` or `web` – a port scan shows up as
+Open the Wazuh dashboard (`https://localhost:8444`) → **Discover**, with
+the `wazuh-alerts-*` index pattern selected, and filter by rule group
+`minisoc_ids` or `web` – a port scan shows up as
 "Possible network scan", the SQL injection and file upload as
 high-severity Suricata/web alerts. Anything level 10 or higher appears
 automatically as a new alert in DFIR-IRIS (`https://localhost:8445`) with

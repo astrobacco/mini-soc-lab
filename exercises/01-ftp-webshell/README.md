@@ -85,10 +85,12 @@ exercise.
 
 ## Step 3 – Blue team: find it in Wazuh
 
-Open the Wazuh dashboard (`https://localhost:8444`) → **Security events**,
-or tail the alerts directly. Three independent alerts fire for this one
-attack – a good example of defence in depth, since no single one of them
-depends on the others:
+Open the Wazuh dashboard (`https://localhost:8444`) → **Discover**, with
+the `wazuh-alerts-*` index pattern selected (see
+[`docs/guides/wazuh.md`](../../docs/guides/wazuh.md) if that's not where
+you expect it to be), or tail the alerts directly. Three independent
+alerts fire for this one attack – a good example of defence in depth,
+since no single one of them depends on the others:
 
 | # | Source | Rule | Level | What it tells you |
 |---|---|---|---|---|

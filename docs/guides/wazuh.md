@@ -9,9 +9,23 @@ how to cut through that.
 
 ## First login
 
-Accept the certificate warning (self-signed). You land on an **Overview**
-page with module tiles. Ignore most of them for now; you'll mainly live in
-two places: **Security events** and **Agents**.
+Accept the certificate warning (self-signed). The left-hand menu you land
+on is the *platform's* own menu (Discover, Dashboards, Visualize,
+Reporting, Alerting, Anomaly detection, Maps, Notifications) – Wazuh's own
+interface is a separate app on top of it, opened via the **Wazuh logo** in
+the top-left corner (not nested under any of those). Click it to get to
+the actual Wazuh home page (agent status, modules, etc.).
+
+## The most reliable way to see alerts: Discover
+
+Wazuh's own UI is where the polish is, but it changes labels/layout
+between versions. The one thing that's stable regardless of version: the
+platform's native **Discover** app (already in that left-hand menu you're
+looking at) reading the **`wazuh-alerts-*`** index pattern – every alert
+Wazuh ever raised, in one searchable table, already pre-registered in this
+lab. Open **Discover**, check the index pattern selector (top-left of the
+page, under the search bar) says `wazuh-alerts-*`, then use the search bar
+below for everything in the table further down.
 
 ## The one thing that trips everyone up: the time filter
 
@@ -23,27 +37,28 @@ fired.
 
 ## Where things are
 
-- **Agents** (left sidebar) – should show `sensor` and `target` as
-  **Active**. If either shows anything else, that agent isn't reporting
-  and nothing it should catch will appear anywhere else in this UI. Check
-  `vagrant ssh <sensor|target> -c "sudo systemctl status wazuh-agent"`.
-- **Explore → Security events** – the main alert feed, sortable/filterable
-  table, this is where you spend most of your time. Each row expands to
-  the full alert (rule id, level, MITRE mapping, raw log).
-- **Explore → Discover** – raw/low-level log search (not just alerts) if
-  you need to see something that didn't rise to an alert.
-- **Threat intelligence → MITRE ATT&CK** – maps fired alerts to MITRE
-  techniques; several of this lab's custom rules are tagged (e.g. T1046
-  recon, T1078 valid accounts, T1505.003 web shell).
-- **Server management → Rules** – search/browse the loaded rule set,
-  including this project's own (IDs `100100`–`100121`, group `minisoc,`
-  – see `provision/wazuh/minisoc_rules.xml`). Useful for checking a rule's
-  exact match conditions instead of guessing.
+- **Discover** (`wazuh-alerts-*`, see above) – the main alert feed,
+  sortable/filterable table, this is where you'll spend most of your
+  time. Each row expands to the full alert (rule id, level, MITRE
+  mapping, raw log).
+- **The Wazuh home page** (click the Wazuh logo, top-left) – from there,
+  Wazuh's own modules are available: an endpoints/agent status summary
+  (should show `sensor` and `target` as **Active** – if either shows
+  anything else, check
+  `vagrant ssh <sensor|target> -c "sudo systemctl status wazuh-agent"`),
+  a vulnerability-detection view, and (usually under a "Server
+  management" or similar section) the loaded rule set, including this
+  project's own custom rules (IDs `100100`–`100121`, group `minisoc,` –
+  see `provision/wazuh/minisoc_rules.xml` to read them directly instead
+  of hunting for them in the UI). Exact labels and layout here are the
+  part most likely to have moved since this was written – if something
+  mentioned isn't where this guide says, `Discover` above always works as
+  a fallback that doesn't depend on Wazuh's own UI structure at all.
 
 ## Filtering for *this lab's* alerts specifically
 
-In **Security events**, use the search bar (KQL-style) or the filter
-builder:
+In **Discover**, with the `wazuh-alerts-*` index pattern selected, use the
+search bar (KQL-style):
 
 | What you're looking for | Filter |
 |---|---|
