@@ -130,13 +130,14 @@ summary() {
             printf '%-12s %-32s %s\n' "Greenbone" "https://localhost:$(conf PORT_GREENBONE)" "admin"
         fi
         if enabled TARGET; then
-            printf '%-12s %-32s %s\n' "DVWA" "http://localhost:$(conf PORT_TARGET)/dvwa/" "admin / password"
+            printf '%-12s %-32s %s\n' "target" "http://localhost:$(conf PORT_TARGET)/" "practice target - see below"
         fi
         echo
         echo "Browsers will warn about the certificates: the lab uses self-signed"
-        echo "certificates, so accept the warning (Advanced > Continue). DVWA is"
-        echo "plain http:// (it's the practice target, not a tool you log into) and"
-        echo "uses its own fixed login above, not the lab password."
+        echo "certificates, so accept the warning (Advanced > Continue). 'target' is"
+        echo "plain http:// and deliberately doesn't look like a training app at"
+        echo "first glance - see the README's \"Red team exercise\" section for what"
+        echo "to actually do with it."
         echo
         local vms="fw|wazuh"
         enabled SOC && vms+="|soc"; enabled SENSOR && vms+="|sensor"

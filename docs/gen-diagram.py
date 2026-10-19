@@ -102,7 +102,7 @@ straight(*bottom(kali), *top(fw), step=1, label_lines=["attack traffic", "(e.g. 
 zy2 = fw_y + 50 + 40
 parts.append(f'<rect x="40" y="{zy2}" width="{W-80}" height="104" rx="10" fill="{ZONE_SERV}" stroke="{ZONE_BORDER}"/>')
 text(60, zy2+22, "SERVERS  10.10.20.0/24", size=13, weight="bold", fill="#8a6a1f")
-target = node(W/2-130, zy2+32, 260, 58, "target", ["Apache + DVWA, vsftpd", "Wazuh agent (FIM + log watch)"])
+target = node(W/2-130, zy2+32, 260, 58, "target", ["Apache + DVWA at /legacy/", "Wazuh agent (FIM + log watch)"])
 straight(*bottom(fw), *top(target), label_at=2)  # short connector, no label/step (continuation of step 1)
 
 # ============================================================ SOC zone

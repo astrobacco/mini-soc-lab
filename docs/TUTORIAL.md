@@ -42,7 +42,7 @@ When it's done, your login details are printed and saved to
 | Wazuh (SIEM) | https://localhost:8444 | admin |
 | DFIR-IRIS (cases) | https://localhost:8445 | administrator |
 | Greenbone (vuln scanner) | https://localhost:9392 | admin |
-| DVWA (the practice target) | http://localhost:8446/dvwa/ | admin / password |
+| target (the practice server) | http://localhost:8446/ | — see step 4 |
 
 The first five of those are **only reachable from your own computer**
 (`127.0.0.1`-bound ports) – not your WiFi, not anywhere else. See the
@@ -64,7 +64,9 @@ You don't need to learn these yet, just confirm they're all up:
 - **DFIR-IRIS** → empty-ish Dashboard for now; this fills up once you
   attack something.
 - **Greenbone** → empty Dashboard too, until you run a scan (step 7).
-- **DVWA** → a login page. This is the one you're about to attack.
+- **target** → an ordinary-looking small company site ("Northgate Defense
+  Systems"). No login prompt, nothing obviously broken. That's
+  deliberate – see step 4.
 
 If anything looks wrong here, each has its own deeper guide:
 [`docs/guides/opnsense.md`](guides/opnsense.md),
@@ -77,24 +79,34 @@ If anything looks wrong here, each has its own deeper guide:
 No Kali, no terminal, no scripts yet – just click through it once so you
 understand what's actually broken before automating anything.
 
-1. Open **http://localhost:8446/dvwa/**, log in as `admin` / `password`.
-2. Left menu → **DVWA Security**. It should already say "Low" (that's the
+1. Open **http://localhost:8446/**. A normal-looking small defense/
+   logistics company site – Home, About, Services, Contact. Nothing here
+   says "training app" anywhere. That's the point: a real target doesn't
+   announce what's wrong with it either.
+2. Try **http://localhost:8446/legacy/** directly. That gets you in – an
+   old internal tool (it's DVWA, Damn Vulnerable Web Application, a
+   well-known deliberately-broken training app) that nobody
+   decommissioned. Log in as `admin` / `password`.
+3. Left menu → **DVWA Security**. It should already say "Low" (that's the
    lab's default) – if not, set it to Low and submit.
-3. Left menu → **SQL Injection**. There's one text box, "User ID". Type:
+4. Left menu → **SQL Injection**. There's one text box, "User ID". Type:
    ```
    1' OR '1'='1
    ```
    and submit. Instead of one user, you get every user in the database
    back. That's the vulnerability: whatever you type gets pasted directly
    into a SQL query with no checks at all.
-4. Left menu → **File Upload**. Any file is accepted, including a `.php`
+5. Left menu → **File Upload**. Any file is accepted, including a `.php`
    one – meaning you could upload a program that runs on the server, not
    just a picture. Don't need to try this here; `exercises/01-ftp-webshell`
    (step 8 below) walks through exactly this, over FTP instead, start to
-   finish including the fix.
+   finish including the fix – and lands in the same web root, at
+   `/uploads/`, a second forgotten problem on the same "real" site.
 
 That's it – you just found and exploited a real, common vulnerability
-class (SQL injection) by hand, no tools beyond a web browser.
+class (SQL injection) by hand, no tools beyond a web browser. In step 5
+you'll do the "finding it" part properly, with actual recon tools instead
+of just guessing the path.
 
 ## 5. The same attack, as an actual attacker
 
@@ -103,8 +115,10 @@ Now do recon and the same SQLi from `kali`, the way a real attacker would
 
 ```bash
 vagrant ssh kali
-nmap -sV 10.10.20.10              # what's running on the target?
-nikto -h http://10.10.20.10/dvwa/ # any obviously bad paths/configs?
+nmap -sV 10.10.20.10          # what's running on the target?
+nikto -h http://10.10.20.10/  # any obviously bad paths/configs?
+gobuster dir -u http://10.10.20.10/ -w /usr/share/wordlists/dirb/common.txt
+# turns up /legacy/ - the hidden app you logged into by hand in step 4
 ```
 
 `~/EXERCISES.txt` on `kali` has a short cheat sheet including an automated
@@ -155,8 +169,14 @@ actually running it.
 
 - **Just stop for the day**: `./setup.sh stop` (keeps everything built),
   `./setup.sh` to resume later – starts in seconds, doesn't rebuild.
-- **Reset the exercise you just ran**: `vagrant ssh target` then
-  `sudo bash exercises/01-ftp-webshell/fix.sh` restores the clean state.
+- **Reset the exercise you just ran**: there's no synced folder into the
+  VMs, so upload the script first, then run it inside the VM:
+  ```bash
+  vagrant upload exercises/01-ftp-webshell/fix.sh /tmp/fix.sh target   # on the host
+  vagrant ssh target                                                   # on the host
+  sudo bash /tmp/fix.sh                                                # inside the VM
+  ```
+  restores the clean state.
 - **Full teardown**: `./setup.sh destroy` (asks first; deletes all VMs,
   keeps your generated lab password for next time).
 

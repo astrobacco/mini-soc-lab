@@ -18,7 +18,7 @@ watching it get caught.** Everything below is the full reference.
 | `wazuh` | Wazuh | SIEM: collects logs and alerts, correlates, raises alarms |
 | `soc` | Greenbone CE + DFIR-IRIS | Vulnerability scanning · alert and case management |
 | `sensor` | Suricata | Network IDS, listens silently on the server network |
-| `target` | Ubuntu + Apache + DVWA | Practice server (the victim) |
+| `target` | Ubuntu + Apache + DVWA, disguised as a normal site | Practice server (the victim) |
 | `kali` | Kali Linux | Attacker for red team exercises |
 
 Serious Wazuh alerts (level 10+) automatically become alerts in DFIR-IRIS, with
@@ -65,7 +65,7 @@ and the only way *in* is from your own computer:
   because your own browser can reach it, but nothing external can.
 - **Kali doesn't need internet for the exercises.** Ongoing internet access
   on `kali` (and the other VMs) is only used for package installation at
-  build/update time. Every attack in `exercises/` and the DVWA walkthrough
+  build/update time. Every attack in `exercises/` and the red team walkthrough
   runs entirely over the isolated intnet networks.
 - **What this setup does *not* protect against:** a vulnerability in
   VirtualBox itself (a hypervisor escape). That's a different class of risk
@@ -105,12 +105,13 @@ vulnerability feed for another 30–60 minutes in the background.
 | Wazuh | https://localhost:8444 | admin | [navigation guide](docs/guides/wazuh.md) |
 | DFIR-IRIS | https://localhost:8445 | administrator | [navigation guide](docs/guides/dfir-iris.md) |
 | Greenbone | https://localhost:9392 | admin | [navigation guide](docs/guides/greenbone.md) |
-| DVWA (the practice target) | http://localhost:8446/dvwa/ | admin / password | see "Red team exercise" below |
+| `target` (the practice server) | http://localhost:8446/ | — | see "Red team exercise" below |
 
 The lab uses self-signed certificates, so your browser will show a warning on
-the first five. DVWA is plain `http://` (it's the practice target, not a
-tool you administer) and has its own fixed login, not the generated lab
-password.
+the first four. `target` is plain `http://` and deliberately looks like a
+normal small company site at first glance – no login prompt, no obvious
+"this is a training app" tell. That's intentional; see below for what it
+actually is and how to find out.
 Each guide covers where the useful stuff actually is, what to filter/search
 for in this specific lab, and what the exercise 01 walkthrough looks like in
 that particular tool.
@@ -130,30 +131,34 @@ Settings (which VMs, memory, versions, ports) are in [`lab.conf`](lab.conf).
 ## Red team exercise – try it yourself
 
 A quick walkthrough to show the lab working end to end, attacker to case
-file. `target` runs DVWA (Damn Vulnerable Web Application); you can reach
-it two ways, and both feed the same detection pipeline:
+file. `target`'s front page (`http://localhost:8446/` from your host, or
+`http://10.10.20.10/` from inside the lab) is a normal-looking small
+defense/logistics contractor site – "Northgate Defense Systems" – with no
+hint of a training app anywhere in it. The actual vulnerable application
+(DVWA) is still there, fully functional, just not linked from anywhere:
+you have to find it, the way an attacker actually would.
 
-- **By hand, in your own browser**: `http://localhost:8446/dvwa/`, login
-  `admin` / `password`. Open **DVWA Security** (left menu) and set it to
-  "low" first, or the deliberately-broken pages behave like fixed ones.
-- **As the attacker**, from `kali` (`vagrant ssh kali`), reaching `target`
-  the way an attacker actually would – over the lab network, through the
-  firewall, not through your host.
+### By hand, in your own browser
 
-### By hand
-
-1. Log in, set security to "low".
-2. Open **SQL Injection** (left menu). Type `1' OR '1'='1` into the User
+1. Poke around `http://localhost:8446/` first – Home, About, Services,
+   Contact. Nothing there points at anything vulnerable.
+2. Try guessing a path. `http://localhost:8446/legacy/` gets you in – an
+   old internal tool nobody decommissioned. Log in with `admin` /
+   `password`.
+3. Open **DVWA Security** (left menu) and confirm it says "Low" (the
+   lab's default) – if not, set it and submit.
+4. Open **SQL Injection** (left menu). Type `1' OR '1'='1` into the User
    ID field and submit – the broken query returns every user instead of
    one. That's the vulnerability: user input gets concatenated straight
    into SQL with no sanitisation.
-3. Open **File Upload**. Any `.php` file is accepted with no checks –
+5. Open **File Upload**. Any `.php` file is accepted with no checks –
    upload one and you have a web shell; the Wazuh agent on `target`
    watches `/var/www/html` in real time and alerts the instant the file
    lands (`exercises/01-ftp-webshell` does the same thing in more depth,
-   over FTP instead of DVWA's own upload form).
+   over FTP instead of DVWA's own upload form, and shares the same web
+   root – a second forgotten problem on the same "real" site).
 
-### As the attacker (`kali`)
+### As the attacker (`kali`), the realistic way
 
 ```bash
 vagrant ssh kali
@@ -165,11 +170,18 @@ vagrant ssh kali
    ```
 2. **Web scan** – look for known paths and misconfigurations:
    ```bash
-   nikto -h http://10.10.20.10/dvwa/
+   nikto -h http://10.10.20.10/
    ```
-3. **SQL injection, automated**: point `sqlmap` at the vulnerable page –
+3. **Find what's actually there** – the front page gives nothing away, so
+   brute-force the directory structure:
    ```bash
-   sqlmap -u "http://10.10.20.10/dvwa/vulnerabilities/sqli/?id=1&Submit=Submit" \
+   gobuster dir -u http://10.10.20.10/ -w /usr/share/wordlists/dirb/common.txt
+   ```
+   turns up `/legacy/` (the hidden DVWA) and, if `exercises/01-ftp-webshell`
+   is currently enabled, `/uploads/` too.
+4. **SQL injection, automated**: point `sqlmap` at the vulnerable page –
+   ```bash
+   sqlmap -u "http://10.10.20.10/legacy/vulnerabilities/sqli/?id=1&Submit=Submit" \
           --cookie="security=low; PHPSESSID=<a session id from your own login>" --batch
    ```
    (log in once via the browser first, copy the `PHPSESSID` cookie from

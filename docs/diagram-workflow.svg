@@ -19,7 +19,7 @@
 <text x="60" y="355" font-size="13" fill="#8a6a1f" font-weight="bold" text-anchor="start" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="normal">SERVERS  10.10.20.0/24</text>
 <rect x="370.0" y="365" width="260" height="58" rx="8" fill="#ffffff" stroke="#2c3440" stroke-width="1.6"/>
 <text x="500.0" y="388" font-size="15" fill="#1b2229" font-weight="bold" text-anchor="middle" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="normal">target</text>
-<text x="500.0" y="407" font-size="12" fill="#5b6572" font-weight="normal" text-anchor="middle" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="normal">Apache + DVWA, vsftpd</text>
+<text x="500.0" y="407" font-size="12" fill="#5b6572" font-weight="normal" text-anchor="middle" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="normal">Apache + DVWA at /legacy/</text>
 <text x="500.0" y="422" font-size="12" fill="#5b6572" font-weight="normal" text-anchor="middle" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-style="normal">Wazuh agent (FIM + log watch)</text>
 <line x1="500.0" y1="297" x2="500.0" y2="365" stroke="#394351" stroke-width="2" marker-end="url(#arrowhead)"/>
 <rect x="40" y="477" width="920" height="470" rx="10" fill="#eaf1fb" stroke="#c9d2dc"/>

@@ -86,8 +86,8 @@ point of the exercise (see its own README for why).
 
 ## Things that are *not* bugs
 
-- A handful of `apache`/web-server alerts at low levels during normal DVWA
-  use are expected noise, not incidents.
+- A handful of `apache`/web-server alerts at low levels during normal use
+  of the DVWA app hidden at `/legacy/` are expected noise, not incidents.
 - Wazuh's own `000` (server) agent entry is itself, not a monitored host –
   ignore it.
 - The dashboard can take 10–20 seconds to reflect a very recent alert;
