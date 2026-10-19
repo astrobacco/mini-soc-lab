@@ -26,6 +26,46 @@ the attacker IP and the affected machine already filled in.
                  \________________ fw (OPNsense) __________________/
 ```
 
+## Network isolation & safety
+
+The lab is designed so that nothing inside it can reach your real network,
+and the only way *in* is from your own computer:
+
+- **Every VM has two network adapters.** NIC 1 is VirtualBox **NAT** – it
+  only exists so Vagrant can SSH in and so the VMs can download packages
+  during setup. NIC 2 (and NIC 3 on `sensor`) is a VirtualBox **"intnet"** –
+  a fully isolated virtual switch that only exists between the lab's own
+  VMs and never touches your host's physical network adapter at all. All
+  the actual attack traffic (Kali → target, etc.) travels over intnet only.
+- **NAT isolates outward, not sideways.** VirtualBox NAT works like a mini
+  router: a VM can reach the real internet through it (needed for `apt
+  install`, Docker pulls, `suricata-update`, etc.), but it has zero
+  visibility onto other devices on your actual LAN/WiFi – it's hidden
+  behind a private `10.0.2.0/24` subnet, not bridged onto your network.
+  There is no bridged adapter anywhere in this project (the networking mode
+  that *would* put a VM directly on your WiFi) – only NAT and intnet.
+- **The web UIs you reach from your browser are localhost-only.** Every
+  `forwarded_port` in the `Vagrantfile` (OPNsense :8443, Wazuh :8444,
+  DFIR-IRIS :8445, Greenbone :9392) is explicitly bound to `host_ip:
+  "127.0.0.1"`. That means only processes running on your own machine can
+  reach them – not other devices on your WiFi, not anything "outside". It's
+  the same mechanism as a local dev server: it looks like it's "exposed"
+  because your own browser can reach it, but nothing external can.
+- **Kali doesn't need internet for the exercises.** Ongoing internet access
+  on `kali` (and the other VMs) is only used for package installation at
+  build/update time. Every attack in `exercises/` and the DVWA walkthrough
+  runs entirely over the isolated intnet networks.
+- **What this setup does *not* protect against:** a vulnerability in
+  VirtualBox itself (a hypervisor escape). That's a different class of risk
+  from network exposure – unrelated to how this lab is wired – and the
+  mitigation is keeping VirtualBox itself up to date, not VM networking
+  changes.
+- **Locking it down further:** if you want `kali` to have zero outbound
+  internet access even during idle time, cut NIC 1 once the lab is built
+  with `VBoxManage controlvm minisoc-kali setlinkstate1 off` (or unplug NIC
+  1 in VirtualBox Manager). It'll still reach `target` fine for exercises;
+  you'd just need to plug NIC 1 back in for `apt update`/`apt install`.
+
 ## Requirements
 
 - Linux host with **VirtualBox 7** (Vagrant is installed automatically if missing)
