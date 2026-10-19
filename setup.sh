@@ -129,9 +129,14 @@ summary() {
             printf '%-12s %-32s %s\n' "DFIR-IRIS" "https://localhost:$(conf PORT_IRIS)"      "administrator"
             printf '%-12s %-32s %s\n' "Greenbone" "https://localhost:$(conf PORT_GREENBONE)" "admin"
         fi
+        if enabled TARGET; then
+            printf '%-12s %-32s %s\n' "DVWA" "http://localhost:$(conf PORT_TARGET)/dvwa/" "admin / password"
+        fi
         echo
         echo "Browsers will warn about the certificates: the lab uses self-signed"
-        echo "certificates, so accept the warning (Advanced > Continue)."
+        echo "certificates, so accept the warning (Advanced > Continue). DVWA is"
+        echo "plain http:// (it's the practice target, not a tool you log into) and"
+        echo "uses its own fixed login above, not the lab password."
         echo
         local vms="fw|wazuh"
         enabled SOC && vms+="|soc"; enabled SENSOR && vms+="|sensor"

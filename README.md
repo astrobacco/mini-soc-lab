@@ -6,6 +6,10 @@ up with a single command.
 
 Final project (Abschlussprojekt) · ICT Warrior Academy · Felix Rechsteiner
 
+**New here? [`docs/TUTORIAL.md`](docs/TUTORIAL.md) is a single zero-to-everything
+walkthrough: what this is, building it, your first attack by hand, and
+watching it get caught.** Everything below is the full reference.
+
 ## What's inside
 
 | VM | Tool | Job |
@@ -101,8 +105,12 @@ vulnerability feed for another 30–60 minutes in the background.
 | Wazuh | https://localhost:8444 | admin | [navigation guide](docs/guides/wazuh.md) |
 | DFIR-IRIS | https://localhost:8445 | administrator | [navigation guide](docs/guides/dfir-iris.md) |
 | Greenbone | https://localhost:9392 | admin | [navigation guide](docs/guides/greenbone.md) |
+| DVWA (the practice target) | http://localhost:8446/dvwa/ | admin / password | see "Red team exercise" below |
 
-The lab uses self-signed certificates, so your browser will show a warning.
+The lab uses self-signed certificates, so your browser will show a warning on
+the first five. DVWA is plain `http://` (it's the practice target, not a
+tool you administer) and has its own fixed login, not the generated lab
+password.
 Each guide covers where the useful stuff actually is, what to filter/search
 for in this specific lab, and what the exercise 01 walkthrough looks like in
 that particular tool.
@@ -122,10 +130,30 @@ Settings (which VMs, memory, versions, ports) are in [`lab.conf`](lab.conf).
 ## Red team exercise – try it yourself
 
 A quick walkthrough to show the lab working end to end, attacker to case
-file. Open two terminals: one on `kali`, one on `wazuh`'s dashboard in the
-browser. `target` runs DVWA (Damn Vulnerable Web Application) at
-`http://10.10.20.10/dvwa/`, login `admin` / `password`, security level
-already set to "low".
+file. `target` runs DVWA (Damn Vulnerable Web Application); you can reach
+it two ways, and both feed the same detection pipeline:
+
+- **By hand, in your own browser**: `http://localhost:8446/dvwa/`, login
+  `admin` / `password`. Open **DVWA Security** (left menu) and set it to
+  "low" first, or the deliberately-broken pages behave like fixed ones.
+- **As the attacker**, from `kali` (`vagrant ssh kali`), reaching `target`
+  the way an attacker actually would – over the lab network, through the
+  firewall, not through your host.
+
+### By hand
+
+1. Log in, set security to "low".
+2. Open **SQL Injection** (left menu). Type `1' OR '1'='1` into the User
+   ID field and submit – the broken query returns every user instead of
+   one. That's the vulnerability: user input gets concatenated straight
+   into SQL with no sanitisation.
+3. Open **File Upload**. Any `.php` file is accepted with no checks –
+   upload one and you have a web shell; the Wazuh agent on `target`
+   watches `/var/www/html` in real time and alerts the instant the file
+   lands (`exercises/01-ftp-webshell` does the same thing in more depth,
+   over FTP instead of DVWA's own upload form).
+
+### As the attacker (`kali`)
 
 ```bash
 vagrant ssh kali
@@ -139,28 +167,30 @@ vagrant ssh kali
    ```bash
    nikto -h http://10.10.20.10/dvwa/
    ```
-3. **SQL injection** – DVWA's SQLi page is deliberately broken; feed it a
-   classic payload (either in the browser's "user ID" field or with curl):
+3. **SQL injection, automated**: point `sqlmap` at the vulnerable page –
    ```bash
-   curl "http://10.10.20.10/dvwa/vulnerabilities/sqli/?id=1%27+OR+%271%27=%271&Submit=Submit" \
-        -H "Cookie: security=low; PHPSESSID=<your session id>"
+   sqlmap -u "http://10.10.20.10/dvwa/vulnerabilities/sqli/?id=1&Submit=Submit" \
+          --cookie="security=low; PHPSESSID=<a session id from your own login>" --batch
    ```
-   or point `sqlmap` at the same URL for an automated run.
-4. **File upload / web shell** – DVWA's upload page accepts a `.php` file
-   with no checks; uploading one trips the file-integrity monitor instantly
-   (the Wazuh agent on `target` watches `/var/www/html` in real time).
-5. **Watch it land**: open the Wazuh dashboard
-   (`https://localhost:8444`, *Security events*) and filter by rule group
-   `minisoc_ids` or `web` – the port scan shows up as "Possible network scan",
-   the SQL injection and file upload as high-severity Suricata/web alerts.
-   Anything level 10 or higher appears automatically as a new alert in
-   DFIR-IRIS (`https://localhost:8445`) with the attacker's IP already filled
-   in as an indicator of compromise and `target` as the affected asset –
-   ready to be turned into a documented case.
+   (log in once via the browser first, copy the `PHPSESSID` cookie from
+   your browser's dev tools – DVWA needs a logged-in session either way).
 
-`~/EXERCISES.txt` on the `kali` VM has the short version of steps 1–3 as a
-cheat sheet. `nmap`, `nikto`, `sqlmap`, `hydra` and `gobuster` are
-pre-installed.
+### Watch it land
+
+Open the Wazuh dashboard (`https://localhost:8444`, *Security events*) and
+filter by rule group `minisoc_ids` or `web` – a port scan shows up as
+"Possible network scan", the SQL injection and file upload as
+high-severity Suricata/web alerts. Anything level 10 or higher appears
+automatically as a new alert in DFIR-IRIS (`https://localhost:8445`) with
+the attacker's IP already filled in as an indicator of compromise and
+`target` as the affected asset – ready to be turned into a documented
+case. See [`docs/guides/wazuh.md`](docs/guides/wazuh.md) and
+[`docs/guides/dfir-iris.md`](docs/guides/dfir-iris.md) if you're not sure
+where to look.
+
+`~/EXERCISES.txt` on the `kali` VM has the short version of the attacker
+steps as a cheat sheet. `nmap`, `nikto`, `sqlmap`, `hydra` and `gobuster`
+are pre-installed there.
 
 ## Guided blue-team exercises
 

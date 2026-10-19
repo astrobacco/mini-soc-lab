@@ -201,6 +201,10 @@ Vagrant.configure("2") do |config|
       t.vm.hostname = "target"
       vm_resources(t, "target", conf("TARGET_MEMORY", "1536").to_i, conf("TARGET_CPUS", "1").to_i)
       t.vm.network "private_network", ip: "10.10.20.10", virtualbox__intnet: "minisoc-servers"
+      # So you can browse DVWA by hand from your own machine, not just attack
+      # it from kali - same localhost-only pattern as the other tools (see
+      # README's "Network isolation & safety").
+      t.vm.network "forwarded_port", guest: 80, host: conf("PORT_TARGET", "8446").to_i, host_ip: "127.0.0.1", id: "target-web"
       linux_base(t, "10.10.20.10", "10.10.20.1")
       t.vm.provision "target-files", type: "file", source: "#{ROOT}/provision/target", destination: "/tmp/minisoc-target"
       t.vm.provision "target", type: "shell", path: "#{ROOT}/provision/target/install.sh", env: PROVISION_ENV
