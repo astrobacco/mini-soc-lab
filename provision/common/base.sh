@@ -55,6 +55,27 @@ UNIT
     systemctl enable --now minisoc-route.service >/dev/null
 fi
 
+# Every box (bento/ubuntu, kalilinux/rolling) ships with cloud-init's own
+# sshd_config.d/50-cloud-init.conf setting "PasswordAuthentication yes" and a
+# vagrant:vagrant password - fine for Vagrant's own SSH-key based control
+# connection (never uses the password), but it means anyone who reaches a VM
+# over the lab network can log in with the single best-known default
+# credential on the internet. Found by Greenbone as a Critical (9.8)
+# finding. sshd takes the *first* value it sees for a directive, and
+# Include processes sshd_config.d/*.conf alphabetically, so this file's name
+# has to sort before "50-cloud-init.conf" to actually win.
+cat > /etc/ssh/sshd_config.d/00-minisoc-harden.conf <<'EOF'
+# Mini-SOC: disable password auth lab-wide (key-only). Must sort before
+# 50-cloud-init.conf - sshd uses the first value seen for each directive.
+PasswordAuthentication no
+EOF
+systemctl reload ssh 2>/dev/null || systemctl reload sshd 2>/dev/null || true
+# Belt and braces: the password is also usable for local/FTP logins if
+# anything else on a VM ever accepts password auth (e.g. vsftpd's
+# local_enable) - lock it out entirely. Vagrant and sudo both work off the
+# SSH key / NOPASSWD:ALL sudoers entry, neither needs this password.
+passwd -l vagrant >/dev/null
+
 grep -q minisoc.lab /etc/hosts || cat >> /etc/hosts <<HOSTS
 # Mini-SOC lab
 10.10.10.1   fw.minisoc.lab fw

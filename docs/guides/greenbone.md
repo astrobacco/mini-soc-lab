@@ -51,6 +51,19 @@ Sort by **Severity** (click the column header) to see Critical/High first
 fix (upgrade, config change, etc.) – read that before going to patch
 anything.
 
+## A clean baseline scan (no exercise running)
+
+With nothing deliberately toggled on, `target` should report essentially
+nothing above Low severity. If a scan shows **"SSH Brute Force Logins With
+Default Credentials Reporting"** or **"FTP Brute Force Logins With Default
+Credentials Reporting"** with credentials `vagrant:vagrant` – that was a
+real, lab-wide issue (every Vagrant box ships that default password,
+reachable from the whole lab network, not just the host) found exactly
+the way a scanner should, fixed in `provision/common/base.sh`
+(password auth disabled, the account locked) and `provision/target/install.sh`
+(vsftpd no longer accepts system-account logins at all). If you still see
+it, `vagrant provision <vm>` the affected box and rescan.
+
 ## After running `exercises/01-ftp-webshell`
 
 Run **"Scan target (incident response)"** while the vulnerability is

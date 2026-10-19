@@ -55,6 +55,7 @@ builder:
 | PHP web shell uploaded via FTP (exercise 01) | `rule.id: 100121` |
 | Only alerts from one agent | `agent.name: target` (or `sensor`) |
 | Only alerts that got forwarded to IRIS | `rule.level >= 10` |
+| Exclude Greenbone's own scan traffic (see below) | `NOT data.srcip: 10.10.10.20 AND NOT rule.groups: minisoc_scanner_noise` |
 
 Click any row to expand it – the raw `full_log` field is usually more
 informative than the summary, especially for FIM events (shows exact
@@ -76,3 +77,14 @@ point of the exercise (see its own README for why).
   ignore it.
 - The dashboard can take 10–20 seconds to reflect a very recent alert;
   it's not real-time to the second.
+- **If the dashboard is a wall of "multiple web server 400 error codes" /
+  "multiple common web attacks" / Suricata log4j-and-XSS alerts and almost
+  nothing else is visible**: that's Greenbone (`soc`, `10.10.10.20`)
+  scanning `target` – its vulnerability checks look exactly like an
+  attacker to the stock correlation rules, and a single "Full and fast"
+  scan can generate thousands of them. This is now tuned down by design
+  (custom rules 100100/100101/100110/100122/100123) rather than removed
+  entirely, so it stays visible at a low level – labelled, in the
+  `minisoc_scanner_noise` group – instead of escalating to DFIR-IRIS as if
+  it were a real incident. If you're still seeing it flood the screen,
+  make sure `wazuh` has been reprovisioned since these rules were added.

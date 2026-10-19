@@ -48,6 +48,14 @@ alert's IOCs and context across. Do this for anything you've actually
 confirmed is real (after checking Wazuh/Greenbone) rather than for every
 single alert – IRIS is meant to hold documented incidents, not raw noise.
 
+**If the inbox is full of near-identical alerts with `10.10.10.20` as the
+IOC** ("multiple web server 400 error codes", "multiple common web
+attacks", Suricata log4j/XSS signatures): that's `soc` itself – the
+Greenbone scanner – not an attacker, found and fixed at the Wazuh level
+(see its guide's "things that are not bugs"). New alerts should be rare
+after that fix; if you're still seeing a flood, the fix needs
+`vagrant provision wazuh` to actually be deployed.
+
 ## After running `exercises/01-ftp-webshell`
 
 Expect two new alerts in the inbox: one titled *"FTP: anonymous login

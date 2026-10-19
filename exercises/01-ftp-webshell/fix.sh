@@ -17,7 +17,7 @@ cat > /etc/vsftpd.conf <<'EOF'
 listen=YES
 listen_ipv6=NO
 anonymous_enable=NO
-local_enable=YES
+local_enable=NO
 write_enable=NO
 dirmessage_enable=YES
 xferlog_enable=YES

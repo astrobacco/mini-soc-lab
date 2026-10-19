@@ -66,10 +66,14 @@ cat > /etc/vsftpd.conf <<'EOF'
 # Mini-SOC target: locked-down baseline for vsftpd.
 # exercises/01-ftp-webshell/enable-vulnerability.sh flips anonymous_enable/anon_upload_enable
 # on for that exercise; fix.sh restores this file.
+# local_enable=NO: nothing in this lab needs system-account FTP login, and
+# leaving it on would let anyone with a Linux account's password (e.g. the
+# "vagrant" account every box has) log in over plaintext FTP - a real
+# vulnerability found by Greenbone, unrelated to the intentional one.
 listen=YES
 listen_ipv6=NO
 anonymous_enable=NO
-local_enable=YES
+local_enable=NO
 write_enable=NO
 dirmessage_enable=YES
 xferlog_enable=YES

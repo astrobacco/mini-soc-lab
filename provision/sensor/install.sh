@@ -43,6 +43,17 @@ if ! command -v suricata >/dev/null; then
 fi
 log "$(suricata -V)"
 
+# The suricata package creates /run/suricata (for its command socket) at
+# install time via dpkg, but ships no tmpfiles.d rule to recreate it - /run
+# is tmpfs, wiped on every reboot, so after the VM's first boot the socket
+# directory is just gone ("Permission denied" trying to create it as the
+# unprivileged suricata user) and the service silently runs without its
+# control socket. This recreates it on every boot, not just at install time.
+cat > /etc/tmpfiles.d/minisoc-suricata.conf <<'EOF'
+d /run/suricata 0750 suricata suricata -
+EOF
+systemd-tmpfiles --create /etc/tmpfiles.d/minisoc-suricata.conf
+
 log "Writing Mini-SOC Suricata settings"
 sed "s|{{SNIFF_IF}}|${SNIFF_IF}|" "${FILES}/minisoc.yaml" > /etc/suricata/minisoc.yaml
 # The networks we defend. Everything else - including the RED network the
