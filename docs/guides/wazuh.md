@@ -93,13 +93,14 @@ point of the exercise (see its own README for why).
 - The dashboard can take 10–20 seconds to reflect a very recent alert;
   it's not real-time to the second.
 - **If the dashboard is a wall of "multiple web server 400 error codes" /
-  "multiple common web attacks" / Suricata log4j-and-XSS alerts and almost
-  nothing else is visible**: that's Greenbone (`soc`, `10.10.10.20`)
-  scanning `target` – its vulnerability checks look exactly like an
-  attacker to the stock correlation rules, and a single "Full and fast"
-  scan can generate thousands of them. This is now tuned down by design
-  (custom rules 100100/100101/100110/100122/100123) rather than removed
-  entirely, so it stays visible at a low level – labelled, in the
-  `minisoc_scanner_noise` group – instead of escalating to DFIR-IRIS as if
-  it were a real incident. If you're still seeing it flood the screen,
-  make sure `wazuh` has been reprovisioned since these rules were added.
+  "multiple common web attacks" / "multiple XSS attempts" / Suricata
+  log4j-and-XSS alerts and almost nothing else is visible**: that's
+  Greenbone (`soc`, `10.10.10.20`) scanning `target` – its vulnerability
+  checks look exactly like an attacker to the stock correlation rules,
+  and a single "Full and fast" scan can generate thousands of them. This
+  is now tuned down by design (custom rules 100100/100101/100110 plus the
+  complete 100122–100128 family) rather than removed entirely, so it
+  stays visible at a low level – labelled, in the `minisoc_scanner_noise`
+  group – instead of escalating to DFIR-IRIS as if it were a real
+  incident. If you're still seeing it flood the screen, make sure `wazuh`
+  has been reprovisioned since these rules were added.

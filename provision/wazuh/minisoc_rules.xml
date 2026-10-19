@@ -53,13 +53,17 @@
     <group>ids,recon,minisoc_ids_correlated,</group>
   </rule>
 
-  <!-- Same exclusion on the web-log side: Wazuh's stock rules 31151/31153
-       (0245-web_rules.xml) correlate Apache access-log patterns and fire
+  <!-- Same exclusion on the web-log side: Wazuh's stock rules 31151-31163
+       (0245-web_rules.xml) are the complete family of "multiple X from the
+       same source ip in a short window" correlations - they all fire
        heavily on Greenbone's own vulnerability-scan traffic against target
-       - in testing, 83% of all alerts (4130 of 4984) were soc scanning
-       itself, not an attacker. Downgraded rather than silenced: still
-       visible in Wazuh at a low level with a label that says what it
-       actually is, just not escalated to DFIR-IRIS as an incident. -->
+       (it tests SQLi, XSS, and deliberately triggers 4xx/5xx errors, among
+       other things), not just the two caught in the first pass
+       (100122/100123 below). In testing, 83% of all alerts (4130 of 4984)
+       were soc scanning itself, not an attacker. Downgraded rather than
+       silenced: still visible in Wazuh at a low level with a label that
+       says what it actually is, just not escalated to DFIR-IRIS as an
+       incident. -->
   <rule id="100122" level="3">
     <if_sid>31151</if_sid>
     <srcip>10.10.10.20</srcip>
@@ -71,6 +75,41 @@
     <if_sid>31153</if_sid>
     <srcip>10.10.10.20</srcip>
     <description>Greenbone vulnerability scan traffic (expected, not an incident): common web attack patterns</description>
+    <group>minisoc_scanner_noise,</group>
+  </rule>
+
+  <rule id="100124" level="3">
+    <if_sid>31152</if_sid>
+    <srcip>10.10.10.20</srcip>
+    <description>Greenbone vulnerability scan traffic (expected, not an incident): SQL injection probes</description>
+    <group>minisoc_scanner_noise,</group>
+  </rule>
+
+  <rule id="100125" level="3">
+    <if_sid>31154</if_sid>
+    <srcip>10.10.10.20</srcip>
+    <description>Greenbone vulnerability scan traffic (expected, not an incident): XSS probes</description>
+    <group>minisoc_scanner_noise,</group>
+  </rule>
+
+  <rule id="100126" level="3">
+    <if_sid>31161</if_sid>
+    <srcip>10.10.10.20</srcip>
+    <description>Greenbone vulnerability scan traffic (expected, not an incident): web server 501 errors</description>
+    <group>minisoc_scanner_noise,</group>
+  </rule>
+
+  <rule id="100127" level="3">
+    <if_sid>31162</if_sid>
+    <srcip>10.10.10.20</srcip>
+    <description>Greenbone vulnerability scan traffic (expected, not an incident): web server 500 errors</description>
+    <group>minisoc_scanner_noise,</group>
+  </rule>
+
+  <rule id="100128" level="3">
+    <if_sid>31163</if_sid>
+    <srcip>10.10.10.20</srcip>
+    <description>Greenbone vulnerability scan traffic (expected, not an incident): web server 503 errors</description>
     <group>minisoc_scanner_noise,</group>
   </rule>
 
