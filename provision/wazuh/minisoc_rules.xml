@@ -17,11 +17,28 @@
        exclusion on the web-log side, and the "Problems solved" writeup for
        why this isn't just filtered out entirely (you still want to know
        your own scanner is doing its job; you just don't want it paged as
-       an incident). -->
+       an incident).
+
+       Found 2026-10-20, while building the SQLi exercise, that 100100,
+       100101 and 100110 (below) had never actually fired once in this
+       project's history despite being claimed "verified end to end" -
+       the built-in <srcip> tag only reads Wazuh's own decoded srcip
+       attribute, which only exists if a decoder explicitly maps into it
+       via <order>; the generic "json" decoder Wazuh uses for Suricata's
+       eve.json just creates a plain dynamic field named src_ip (with the
+       underscore, straight from the JSON key) instead, which <srcip>
+       never sees. An unmatched <srcip negate="yes"> doesn't fail open
+       (match anyway) - it fails closed, so every single event silently
+       never matched. Fixed by matching the real field directly with
+       <field name="src_ip" negate="yes">. Confirmed with wazuh-logtest:
+       both the escalation (severity 1/2 from a non-excluded source) and
+       the exclusion (same severities from 10.10.10.20) now behave
+       correctly, and a real SQLi request now lands as 100100 (level 12)
+       instead of silently staying at the generic level-3 base rule. -->
   <rule id="100100" level="12">
     <if_sid>86601</if_sid>
     <field name="alert.severity">^1$</field>
-    <srcip negate="yes">10.10.10.20</srcip>
+    <field name="src_ip" negate="yes">^10\.10\.10\.20$</field>
     <description>Suricata [high]: $(alert.signature)</description>
     <group>ids,minisoc_ids,</group>
   </rule>
@@ -29,7 +46,7 @@
   <rule id="100101" level="10">
     <if_sid>86601</if_sid>
     <field name="alert.severity">^2$</field>
-    <srcip negate="yes">10.10.10.20</srcip>
+    <field name="src_ip" negate="yes">^10\.10\.10\.20$</field>
     <description>Suricata [medium]: $(alert.signature)</description>
     <group>ids,minisoc_ids,</group>
   </rule>
@@ -47,7 +64,7 @@
   <rule id="100110" level="10" frequency="15" timeframe="60">
     <if_matched_group>minisoc_ids</if_matched_group>
     <same_field>src_ip</same_field>
-    <srcip negate="yes">10.10.10.20</srcip>
+    <field name="src_ip" negate="yes">^10\.10\.10\.20$</field>
     <description>Possible network scan: many IDS alerts from $(src_ip)</description>
     <mitre><id>T1046</id></mitre>
     <group>ids,recon,minisoc_ids_correlated,</group>

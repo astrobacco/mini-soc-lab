@@ -225,13 +225,20 @@ are pre-installed there, along with `~/dvwa-bruteforce.py` and
 
 [`exercises/`](exercises/) has full, scripted "zero to fixed" scenarios: a
 vulnerability gets switched on, an attack script runs against it, and you
-(the blue team) have to spot it in Wazuh, confirm it with a Greenbone scan
-and fix it, without being told in advance what happened.
+(the blue team) have to spot it in Wazuh and fix it, without being told in
+advance what happened. Each one uses a different detection mechanism on
+purpose, so together they show the range of what a SOC actually watches.
 
 - [`exercises/01-ftp-webshell/`](exercises/01-ftp-webshell/) – anonymous FTP
   with a writable folder inside the web root leads to a PHP web shell and
   real code execution. Caught by Wazuh's file-integrity monitoring and two
   custom FTP rules, confirmed by Greenbone, fixed with one script.
+- [`exercises/02-dvwa-sqli/`](exercises/02-dvwa-sqli/) – a single `curl`
+  request with a classic `UNION SELECT` payload dumps the hidden DVWA's
+  entire user table. Caught by Suricata reading the raw packet, not by any
+  log or file change - and, honestly, *not* confirmable by Greenbone, since
+  an app-specific logic flaw isn't something a generic vulnerability
+  scanner can fingerprint. Fixed by changing DVWA's security level.
 
 ## Documentation
 

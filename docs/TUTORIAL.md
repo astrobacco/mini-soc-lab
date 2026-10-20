@@ -182,6 +182,14 @@ script remediates it, and a rescan proves it's actually fixed. Every
 number in that doc (alert IDs, severities, IRIS alert numbers) came from
 actually running it.
 
+[`exercises/02-dvwa-sqli/`](../exercises/02-dvwa-sqli/README.md) is the
+same loop with a deliberately different detection mechanism: a single
+`curl` request dumps DVWA's user table, caught by Suricata reading the
+raw packet rather than by any file change or log pattern – and, honestly,
+*not* confirmable by Greenbone, since an app-specific logic flaw isn't
+something a generic vulnerability scanner can fingerprint. Worth running
+right after 01 to see the contrast.
+
 ## 9. Resetting / cleaning up
 
 - **Just stop for the day**: `./setup.sh stop` (keeps everything built),
