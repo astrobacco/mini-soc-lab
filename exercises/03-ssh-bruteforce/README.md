@@ -71,11 +71,11 @@ PORT   STATE SERVICE VERSION
 **2b. Build a small, targeted password list.** A real attacker rarely
 reaches for a 14-million-line wordlist first – a short list of common and
 OSINT-guessed passwords is faster and, against weak credentials, just as
-effective. Put the real password somewhere in the middle, not first, so
-it's clear the tool is actually trying each one:
+effective. Open a text editor (`nano ~/ssh-passwords.txt`) and save one
+password per line. Put the real password somewhere in the middle, not
+first, so it's clear the tool is actually trying each one:
 
-```bash
-cat > ~/ssh-passwords.txt <<'EOF'
+```
 123456
 admin
 letmein
@@ -85,7 +85,6 @@ welcome
 password1
 root123
 service
-EOF
 ```
 
 **2c. Brute-force it with `hydra`:**
