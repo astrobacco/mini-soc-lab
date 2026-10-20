@@ -135,4 +135,43 @@
     <group>ftp,web,minisoc_ftp_webshell,</group>
   </rule>
 
+  <!-- DVWA login brute force (/legacy/login.php): Wazuh has no built-in
+       decoder for a generic PHP login form the way it does for SSH/FTP, so
+       without this, repeated failed logins against the hidden DVWA app are
+       completely invisible - found by actually running a brute-force
+       script from kali and checking: zero alerts fired. The access log
+       doesn't carry the response body, and DVWA's login always replies
+       302 whether the attempt succeeded or failed, so pass/fail per
+       request can't be told apart from the log alone - the signal used
+       here is volume instead: a real user POSTs to the login page once or
+       twice, a brute force does it dozens of times in a row from the same
+       source. Same if_matched_sid + same_source_ip frequency pattern as
+       the stock 31151-31163 family above.
+
+       Chained onto 31108 ("Ignored URLs (simple queries)"), not its parent
+       31100 directly: a plain login.php POST has no suspicious query
+       string, so the stock ruleset's own catch-all for boring traffic
+       claims the event first, same as every attempt in testing. Wazuh
+       only evaluates further down the branch that actually matched, not
+       every other sibling chained on the same if_sid - a rule chained
+       directly onto 31100 next to 31108 silently never fires, no error,
+       just never shows up, found by testing with the rule's level
+       deliberately raised above 31108's to rule out a level/priority
+       explanation before suspecting the chain itself. -->
+  <rule id="100129" level="3">
+    <if_sid>31108</if_sid>
+    <url>/legacy/login.php</url>
+    <protocol>^POST$</protocol>
+    <description>POST to the DVWA login page (/legacy/login.php)</description>
+    <group>minisoc_web,</group>
+  </rule>
+
+  <rule id="100130" level="10" frequency="5" timeframe="60">
+    <if_matched_sid>100129</if_matched_sid>
+    <same_source_ip />
+    <description>Possible brute force attack against the DVWA login page (/legacy/login.php)</description>
+    <mitre><id>T1110</id></mitre>
+    <group>authentication_failures,minisoc_web_brute_force,</group>
+  </rule>
+
 </group>

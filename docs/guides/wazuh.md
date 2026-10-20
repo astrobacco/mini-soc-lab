@@ -48,7 +48,7 @@ fired.
   `vagrant ssh <sensor|target> -c "sudo systemctl status wazuh-agent"`),
   a vulnerability-detection view, and (usually under a "Server
   management" or similar section) the loaded rule set, including this
-  project's own custom rules (IDs `100100`–`100121`, group `minisoc,` –
+  project's own custom rules (IDs `100100`–`100130`, group `minisoc,` –
   see `provision/wazuh/minisoc_rules.xml` to read them directly instead
   of hunting for them in the UI). Exact labels and layout here are the
   part most likely to have moved since this was written – if something
@@ -62,12 +62,13 @@ search bar (KQL-style):
 
 | What you're looking for | Filter |
 |---|---|
-| Everything from the custom Mini-SOC ruleset | `rule.groups: minisoc_ids OR rule.groups: minisoc_ftp OR rule.groups: ftp` |
+| Everything from the custom Mini-SOC ruleset | `rule.groups: minisoc_ids OR rule.groups: minisoc_ftp OR rule.groups: ftp OR rule.groups: minisoc_web_brute_force` |
 | Suricata/IDS alerts | `rule.groups: ids` |
 | A possible network scan | `rule.id: 100110` |
 | File-integrity (new/changed files on `target`'s web root) | `rule.groups: syscheck` (added = rule `554`, modified = `550`, deleted = `553`) |
 | Anonymous FTP login (exercise 01) | `rule.id: 100120` |
 | PHP web shell uploaded via FTP (exercise 01) | `rule.id: 100121` |
+| Brute force against the hidden DVWA login (`/legacy/login.php`) | `rule.id: 100130` |
 | Only alerts from one agent | `agent.name: target` (or `sensor`) |
 | Only alerts that got forwarded to IRIS | `rule.level >= 10` |
 | Exclude Greenbone's own scan traffic (see below) | `NOT data.srcip: 10.10.10.20 AND NOT rule.groups: minisoc_scanner_noise` |

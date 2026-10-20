@@ -86,7 +86,8 @@ understand what's actually broken before automating anything.
 2. Try **http://localhost:8446/legacy/** directly. That gets you in – an
    old internal tool (it's DVWA, Damn Vulnerable Web Application, a
    well-known deliberately-broken training app) that nobody
-   decommissioned. Log in as `admin` / `password`.
+   decommissioned. Log in as `admin` / `password` (found by brute force
+   in step 5 – given to you here so you can keep going by hand).
 3. Left menu → **DVWA Security**. It should already say "Low" (that's the
    lab's default) – if not, set it to Low and submit.
 4. Left menu → **SQL Injection**. There's one text box, "User ID". Type:
@@ -106,7 +107,7 @@ understand what's actually broken before automating anything.
 That's it – you just found and exploited a real, common vulnerability
 class (SQL injection) by hand, no tools beyond a web browser. In step 5
 you'll do the "finding it" part properly, with actual recon tools instead
-of just guessing the path.
+of just guessing the path or already knowing the password.
 
 ## 5. The same attack, as an actual attacker
 
@@ -121,6 +122,21 @@ gobuster dir -u http://10.10.20.10/ -w /usr/share/wordlists/dirb/common.txt
 # turns up /legacy/ - the hidden app you logged into by hand in step 4
 ```
 
+Then brute-force the login instead of just typing in the password you
+already know. `hydra`'s `http-post-form` module can't be used as-is here
+– DVWA issues a fresh CSRF token on every page load and invalidates it
+after one POST, so a tool that reuses one fixed token for many attempts
+can't tell a wrong password from a stale token; every attempt looks like
+a false "success". A bundled script does a proper GET → extract-token →
+POST cycle per attempt instead, the way a real attacker's own script
+would:
+
+```bash
+python3 ~/dvwa-bruteforce.py ~/passwords.txt
+```
+
+finds `admin` / `password` in a handful of tries.
+
 `~/EXERCISES.txt` on `kali` has a short cheat sheet including an automated
 `sqlmap` run against the same SQL injection page. `nmap`, `nikto`,
 `sqlmap`, `hydra` and `gobuster` are all pre-installed there.
@@ -131,8 +147,9 @@ Open **Wazuh** (`https://localhost:8444`) → **Discover** (in the left
 menu) → select the **`wazuh-alerts-*`** index pattern if it isn't already
 selected. Widen the time range in the top-right corner if it looks empty
 (defaults to the last 15 minutes). You should see entries like "Common
-web attack" or "Web server 400 error code" with a timestamp matching what
-you just did. Click one to expand it and see exactly what Wazuh saw.
+web attack", "Web server 400 error code", or "Possible brute force attack
+against the DVWA login page" with a timestamp matching what you just did.
+Click one to expand it and see exactly what Wazuh saw.
 
 Anything Wazuh rates level 10 or higher gets forwarded automatically to
 **DFIR-IRIS** (`https://localhost:8445`) → **Alerts** – with your IP

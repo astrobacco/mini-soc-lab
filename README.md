@@ -144,7 +144,8 @@ you have to find it, the way an attacker actually would.
    Contact. Nothing there points at anything vulnerable.
 2. Try guessing a path. `http://localhost:8446/legacy/` gets you in – an
    old internal tool nobody decommissioned. Log in with `admin` /
-   `password`.
+   `password` (found by brute force in the "as the attacker" walkthrough
+   below – given to you here so you can keep going by hand).
 3. Open **DVWA Security** (left menu) and confirm it says "Low" (the
    lab's default) – if not, set it and submit.
 4. Open **SQL Injection** (left menu). Type `1' OR '1'='1` into the User
@@ -179,7 +180,18 @@ vagrant ssh kali
    ```
    turns up `/legacy/` (the hidden DVWA) and, if `exercises/01-ftp-webshell`
    is currently enabled, `/uploads/` too.
-4. **SQL injection, automated**: point `sqlmap` at the vulnerable page –
+4. **Brute-force the login**: `hydra`'s `http-post-form` module can't be
+   used as-is here – DVWA issues a fresh CSRF token on every page load and
+   invalidates it after one POST, so a tool that reuses one fixed token
+   for many attempts can't tell a wrong password from a stale token; every
+   attempt looks like a false "success". A bundled script does a proper
+   GET → extract-token → POST cycle per attempt instead, the way a real
+   attacker's own script would:
+   ```bash
+   python3 ~/dvwa-bruteforce.py ~/passwords.txt
+   ```
+   finds `admin` / `password` in a handful of tries.
+5. **SQL injection, automated**: point `sqlmap` at the vulnerable page –
    ```bash
    sqlmap -u "http://10.10.20.10/legacy/vulnerabilities/sqli/?id=1&Submit=Submit" \
           --cookie="security=low; PHPSESSID=<a session id from your own login>" --batch
@@ -192,8 +204,11 @@ vagrant ssh kali
 Open the Wazuh dashboard (`https://localhost:8444`) → **Discover**, with
 the `wazuh-alerts-*` index pattern selected, and filter by rule group
 `minisoc_ids` or `web` – a port scan shows up as
-"Possible network scan", the SQL injection and file upload as
-high-severity Suricata/web alerts. Anything level 10 or higher appears
+"Possible network scan", the login brute force as "Possible brute force
+attack against the DVWA login page" (rule group `minisoc_web_brute_force`
+– five failed POSTs to `/legacy/login.php` from the same source in a
+minute), and the SQL injection and file upload as high-severity
+Suricata/web alerts. Anything level 10 or higher appears
 automatically as a new alert in DFIR-IRIS (`https://localhost:8445`) with
 the attacker's IP already filled in as an indicator of compromise and
 `target` as the affected asset – ready to be turned into a documented
@@ -203,7 +218,8 @@ where to look.
 
 `~/EXERCISES.txt` on the `kali` VM has the short version of the attacker
 steps as a cheat sheet. `nmap`, `nikto`, `sqlmap`, `hydra` and `gobuster`
-are pre-installed there.
+are pre-installed there, along with `~/dvwa-bruteforce.py` and
+`~/passwords.txt` for the login brute force.
 
 ## Guided blue-team exercises
 
