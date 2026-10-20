@@ -113,7 +113,7 @@ normal small company site at first glance – no login prompt, no obvious
 "this is a training app" tell. That's intentional; see below for what it
 actually is and how to find out.
 Each guide covers where the useful stuff actually is, what to filter/search
-for in this specific lab, and what the exercise 01 walkthrough looks like in
+for in this specific lab, and what the guided exercises look like in
 that particular tool.
 
 ## Everyday use
