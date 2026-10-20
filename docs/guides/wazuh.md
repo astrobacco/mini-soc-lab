@@ -69,6 +69,8 @@ search bar (KQL-style):
 | Anonymous FTP login (exercise 01) | `rule.id: 100120` |
 | PHP web shell uploaded via FTP (exercise 01) | `rule.id: 100121` |
 | Brute force against the hidden DVWA login (`/legacy/login.php`) | `rule.id: 100130` |
+| SQL injection caught by Suricata (exercise 02) | `rule.id: 100100` |
+| SSH brute force (exercise 03, Wazuh's built-in rule) | `rule.id: 5763` |
 | Only alerts from one agent | `agent.name: target` (or `sensor`) |
 | Only alerts that got forwarded to IRIS | `rule.level >= 10` |
 | Exclude Greenbone's own scan traffic (see below) | `NOT data.srcip: 10.10.10.20 AND NOT rule.groups: minisoc_scanner_noise` |

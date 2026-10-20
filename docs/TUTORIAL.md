@@ -175,12 +175,13 @@ a real vulnerability assessment would. Full guide:
 Everything above shows pieces of the pipeline. For the complete loop –
 including the fix and proof the fix worked – run
 [`exercises/01-ftp-webshell/`](../exercises/01-ftp-webshell/README.md): a
-real (not staged) misconfiguration gets switched on, an attack script
-drops a web shell and gets real code execution, Wazuh catches it three
-independent ways, Greenbone independently confirms the root cause, a fix
-script remediates it, and a rescan proves it's actually fixed. Every
-number in that doc (alert IDs, severities, IRIS alert numbers) came from
-actually running it.
+real (not staged) misconfiguration gets switched on, then you drop a web
+shell and get real code execution by hand (FTP client, `curl`, one
+command at a time – no wrapper script), Wazuh catches it three independent
+ways, Greenbone independently confirms the root cause, a fix script
+remediates it, and a rescan proves it's actually fixed. Every number in
+that doc (alert IDs, severities, IRIS alert numbers) came from actually
+running it.
 
 [`exercises/02-dvwa-sqli/`](../exercises/02-dvwa-sqli/README.md) is the
 same loop with a deliberately different detection mechanism: a single
@@ -189,6 +190,12 @@ raw packet rather than by any file change or log pattern – and, honestly,
 *not* confirmable by Greenbone, since an app-specific logic flaw isn't
 something a generic vulnerability scanner can fingerprint. Worth running
 right after 01 to see the contrast.
+
+[`exercises/03-ssh-bruteforce/`](../exercises/03-ssh-bruteforce/README.md)
+rounds the set out: a forgotten service account with a weak SSH password,
+caught by Wazuh's *built-in* brute-force detection (no custom rule needed,
+unlike the other two) - and, like 02, not confirmable by Greenbone, but
+for a third, different reason worth tracing down in the exercise itself.
 
 ## 9. Resetting / cleaning up
 

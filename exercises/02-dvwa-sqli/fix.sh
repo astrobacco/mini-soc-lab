@@ -4,8 +4,8 @@
 # UNION-based injection (same vulnerable-looking SQLi page, but the query
 # is built safely at that level) - this is the "quick config fix" a real
 # admin could ship immediately, versus "rewrite the app" as the proper
-# long-term fix. Re-run exercises/02-dvwa-sqli/attack.sh afterwards (it
-# always starts from a fresh login/session) to confirm it no longer works.
+# long-term fix. Re-run exercises/02-dvwa-sqli/README.md's Step 2 (with a
+# fresh login/session) afterwards to confirm it no longer works.
 set -euo pipefail
 [ "$(id -u)" = 0 ] || exec sudo "$0" "$@"
 

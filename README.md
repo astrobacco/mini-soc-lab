@@ -223,11 +223,13 @@ are pre-installed there, along with `~/dvwa-bruteforce.py` and
 
 ## Guided blue-team exercises
 
-[`exercises/`](exercises/) has full, scripted "zero to fixed" scenarios: a
-vulnerability gets switched on, an attack script runs against it, and you
-(the blue team) have to spot it in Wazuh and fix it, without being told in
-advance what happened. Each one uses a different detection mechanism on
-purpose, so together they show the range of what a SOC actually watches.
+[`exercises/`](exercises/) has full "zero to fixed" scenarios: a
+vulnerability gets switched on (scripted, since that's environment setup),
+then a red cell attacks it *by hand* – real tools, one command at a time,
+documented step by step – and you (the blue team) have to spot it in Wazuh
+and fix it, without being told in advance what happened. Each one uses a
+different detection mechanism on purpose, so together they show the range
+of what a SOC actually watches.
 
 - [`exercises/01-ftp-webshell/`](exercises/01-ftp-webshell/) – anonymous FTP
   with a writable folder inside the web root leads to a PHP web shell and
@@ -239,6 +241,14 @@ purpose, so together they show the range of what a SOC actually watches.
   log or file change - and, honestly, *not* confirmable by Greenbone, since
   an app-specific logic flaw isn't something a generic vulnerability
   scanner can fingerprint. Fixed by changing DVWA's security level.
+- [`exercises/03-ssh-bruteforce/`](exercises/03-ssh-bruteforce/) – a
+  forgotten "service" account with a weak password lets `hydra` brute-force
+  its way in over SSH. Caught by Wazuh's *built-in* SSH rules - no custom
+  rule needed this time - but, honestly, *not* confirmable by Greenbone
+  either, for a third and different reason: its SSH credential-check NVT
+  only probes auth methods for a random/invalid username first, so a
+  password allowed for just this one real account never gets tried at all.
+  Fixed by locking the account and closing the per-user exception.
 
 ## Documentation
 
