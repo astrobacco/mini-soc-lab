@@ -96,12 +96,22 @@ Vagrant.configure("2") do |config|
     vb.customize ["modifyvm", :id, "--audio-enabled", "off"]
   end
 
-  # Small helper so every VM is described the same way.
+  # Small helper so every VM is described the same way. Also overrides the
+  # upstream box's own VirtualBox "Description" field (bento/kalilinux boxes
+  # ship one that just says the vagrant/vagrant default login) - found
+  # stale and misleading: on the Linux VMs base.sh locks that account and
+  # disables SSH password auth lab-wide, so there is no VM login password
+  # at all any more, only `vagrant ssh <name>` (key-based, automatic) and
+  # the single generated lab password for the web dashboards.
   def vm_resources(machine, name, memory, cpus)
     machine.vm.provider "virtualbox" do |vb|
       vb.name   = "minisoc-#{name}"
       vb.memory = memory
       vb.cpus   = cpus
+      vb.customize ["modifyvm", :id, "--description",
+        "Mini-SOC lab VM. No console/SSH password - use 'vagrant ssh #{name}' " \
+        "from the host (key-based). Web dashboards use the single lab " \
+        "password in .lab/ACCESS.txt."]
     end
   end
 
@@ -201,9 +211,9 @@ Vagrant.configure("2") do |config|
       t.vm.hostname = "target"
       vm_resources(t, "target", conf("TARGET_MEMORY", "1536").to_i, conf("TARGET_CPUS", "1").to_i)
       t.vm.network "private_network", ip: "10.10.20.10", virtualbox__intnet: "minisoc-servers"
-      # So you can browse DVWA by hand from your own machine, not just attack
-      # it from kali - same localhost-only pattern as the other tools (see
-      # README's "Network isolation & safety").
+      # So you can browse the hidden portal app by hand from your own machine,
+      # not just attack it from kali - same localhost-only pattern as the
+      # other tools (see README's "Network isolation & safety").
       t.vm.network "forwarded_port", guest: 80, host: conf("PORT_TARGET", "8446").to_i, host_ip: "127.0.0.1", id: "target-web"
       linux_base(t, "10.10.20.10", "10.10.20.1")
       t.vm.provision "target-files", type: "file", source: "#{ROOT}/provision/target", destination: "/tmp/minisoc-target"

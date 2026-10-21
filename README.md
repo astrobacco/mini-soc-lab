@@ -126,6 +126,15 @@ that particular tool.
 vagrant ssh wazuh     # shell on a VM
 ```
 
+`vagrant ssh <vm>` needs no password (it uses the key Vagrant generated for
+that VM automatically). There is no other way in: `base.sh` locks the
+`vagrant` account's password and turns off SSH password auth lab-wide on
+every Linux VM, so the `vagrant`/`vagrant` default login some tools still
+show (e.g. VirtualBox's own "Description" field for the underlying box,
+before this project overrides it) no longer works. The one password that
+does exist is the single generated lab password used for the five web
+dashboards above (`.lab/ACCESS.txt`).
+
 Settings (which VMs, memory, versions, ports) are in [`lab.conf`](lab.conf).
 
 ## Red team exercise – try it yourself
