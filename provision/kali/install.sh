@@ -29,6 +29,21 @@ autologin-user-timeout=0
 EOF
     systemctl set-default graphical.target
     systemctl enable lightdm >/dev/null
+
+    # xfce4-screensaver ships enabled by default and locks the session after
+    # an idle timeout - a real lockout here, not an inconvenience, since
+    # base.sh has already locked vagrant's password (no console password
+    # exists that could ever unlock it again; recovering needs `vagrant ssh`
+    # and `xfce4-screensaver-command --deactivate`, found the hard way).
+    # Disabled per-user via the standard XDG autostart override (a same-
+    # named file under ~/.config/autostart with Hidden=true) rather than
+    # touching the package's own /etc/xdg/autostart entry.
+    install -d -m 755 -o vagrant -g vagrant /home/vagrant/.config/autostart
+    cat > /home/vagrant/.config/autostart/xfce4-screensaver.desktop <<'EOF'
+[Desktop Entry]
+Hidden=true
+EOF
+    chown vagrant:vagrant /home/vagrant/.config/autostart/xfce4-screensaver.desktop
 else
     log "KALI_GUI=false: staying CLI-only (no desktop installed)"
 fi
