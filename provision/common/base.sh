@@ -20,9 +20,21 @@ if command -v nmcli >/dev/null && systemctl is-active --quiet NetworkManager; th
     log "Pinning ${LAB_IP} on ${iface} in NetworkManager"
     nmcli -t -f NAME con show | grep -qx minisoc-lab && nmcli con delete minisoc-lab >/dev/null
     nmcli con add type ethernet ifname "$iface" con-name minisoc-lab \
+        connection.autoconnect yes connection.autoconnect-priority 999 \
         ipv4.method manual ipv4.addresses "${LAB_IP}/24" ipv4.never-default yes \
         ipv4.routes "10.10.0.0/16 ${LAB_GATEWAY}" ipv6.method disabled >/dev/null
     nmcli con up minisoc-lab >/dev/null
+    # Stop NetworkManager from ever racing minisoc-lab with its own
+    # auto-generated "Wired connection" DHCP profile for this NIC - seen in
+    # practice losing just the extra 10.0.0.0/16 route (the primary address
+    # still came from minisoc-lab) after a non-`vagrant up` VM restart, with
+    # no error anywhere. no-auto-default removes the competing profile
+    # entirely instead of just trying to out-prioritize it.
+    mkdir -p /etc/NetworkManager/conf.d
+    cat > /etc/NetworkManager/conf.d/90-minisoc-no-auto-default.conf <<CONF
+[main]
+no-auto-default=${iface}
+CONF
 elif command -v netplan >/dev/null && [ -d /etc/netplan ]; then
     cat > /etc/netplan/60-minisoc.yaml <<NETPLAN
 network:
@@ -35,9 +47,18 @@ network:
 NETPLAN
     chmod 600 /etc/netplan/60-minisoc.yaml
     netplan apply 2>/dev/null
-else
-    # Kali and other non-netplan systems: a small boot-time unit sets the route
-    cat > /etc/systemd/system/minisoc-route.service <<UNIT
+fi
+
+# Belt and braces on every backend, not just systems with neither NetworkManager
+# nor netplan: a boot-time unit that unconditionally re-asserts the lab route
+# after the network is up. The nmcli/netplan declarative routes above are the
+# first line of defense and normally enough on their own, but a real incident
+# showed NetworkManager's declarative ipv4.routes silently not being applied
+# on an otherwise-successful boot (primary address present and correct, extra
+# route just missing, no error logged anywhere) - this unit is what makes that
+# self-healing on every subsequent boot instead of needing a manual
+# `vagrant provision` to notice and fix it each time.
+cat > /etc/systemd/system/minisoc-route.service <<UNIT
 [Unit]
 Description=Mini-SOC: route lab networks via the firewall
 After=network-online.target
@@ -51,9 +72,8 @@ ExecStart=/usr/sbin/ip route replace 10.10.0.0/16 via ${LAB_GATEWAY} dev ${iface
 [Install]
 WantedBy=multi-user.target
 UNIT
-    systemctl daemon-reload
-    systemctl enable --now minisoc-route.service >/dev/null
-fi
+systemctl daemon-reload
+systemctl enable --now minisoc-route.service >/dev/null
 
 # Every box (bento/ubuntu, kalilinux/rolling) ships with cloud-init's own
 # sshd_config.d/50-cloud-init.conf setting "PasswordAuthentication yes" and a

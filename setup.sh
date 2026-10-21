@@ -24,6 +24,28 @@ conf() { local v="${!1:-}"; [ -n "$v" ] && { echo "$v"; return; }
          sed -n "s/^$1=\([^#]*\).*/\1/p" lab.conf | tr -d ' "' | tail -1; }
 enabled() { [ "$(conf "ENABLE_$1")" != "false" ]; }
 
+# Starting a VM one at a time (the build() loop below never runs `vagrant up`
+# concurrently) is not enough on its own: Vagrant's SSH probe returns as soon
+# as a VM answers SSH, but a VM's own background work (docker pulling/starting
+# containers, a SIEM's services coming up, apt finishing) keeps loading the
+# host's CPU well after that. Starting the *next* VM's boot into that leftover
+# load is what actually produces the RCU-stall/boot-timeout gotcha - not two
+# `vagrant up` calls racing each other, which this loop never does anyway.
+# Gate on host load average dropping back to a sane level first.
+wait_for_host_load() {
+    local cpus; cpus=$(nproc)
+    local threshold; threshold=$(awk -v c="$cpus" 'BEGIN{printf "%.1f", c*1.5}')
+    local waited=0 max=180
+    while (( waited < max )); do
+        local load1; load1=$(awk '{print $1}' /proc/loadavg)
+        awk -v l="$load1" -v t="$threshold" 'BEGIN{exit !(l<t)}' && return 0
+        (( waited == 0 )) && info "Host load ${load1} is above ${threshold} (${cpus} CPUs) - letting it settle before starting the next VM"
+        sleep 5
+        waited=$(( waited + 5 ))
+    done
+    warn "Host load still high after ${max}s - starting the next VM anyway"
+}
+
 # ------------------------------------------------------------------ checks
 check_host() {
     command -v VBoxManage >/dev/null || fail "VirtualBox is not installed. Install it from https://www.virtualbox.org and run ./setup.sh again."
@@ -91,13 +113,20 @@ build() {
     bold "Logs per VM: .lab/<vm>.log   (safe to re-run ./setup.sh if something fails)"
     bold ""
 
+    local first=1
     for vm in "${vms[@]}"; do
+        (( first )) || wait_for_host_load
+        first=0
         if [ -f ".lab/$vm.done" ]; then
             if [ "$(vagrant status "$vm" --machine-readable | awk -F, '$3=="state"{print $4}')" = "running" ]; then
                 info "$vm: already built and running"
             else
                 info "$vm: already built - starting it"
-                vagrant up "$vm" --no-provision > ".lab/$vm.log" 2>&1 || fail "$vm did not start - see .lab/$vm.log"
+                if ! vagrant up "$vm" --no-provision > ".lab/$vm.log" 2>&1; then
+                    warn "$vm did not start on the first try (often a boot-time RCU stall under host load - see .lab/$vm.log) - powering it off and retrying once"
+                    VBoxManage controlvm "minisoc-$vm" poweroff >/dev/null 2>&1 || true
+                    vagrant up "$vm" --no-provision > ".lab/$vm.log" 2>&1 || fail "$vm did not start - see .lab/$vm.log"
+                fi
             fi
             continue
         fi
