@@ -44,9 +44,13 @@ app ever quite manages to feel like.
 
 ## Step 1 – Red cell: make sure the vulnerability is on
 
+There's no synced folder into the VMs, so upload the script first, then run
+it inside the VM:
+
 ```bash
-vagrant ssh target
-sudo bash exercises/02-portal-sqli/enable-vulnerability.sh
+vagrant upload exercises/02-portal-sqli/enable-vulnerability.sh /tmp/enable-vulnerability.sh target   # on the host
+vagrant ssh target                                                                                     # on the host
+sudo bash /tmp/enable-vulnerability.sh                                                                 # inside the VM
 ```
 
 This is usually a no-op – `provision/target/install.sh` already ships the
@@ -207,8 +211,9 @@ verifying the request by hand, exactly as Step 2 did.
 ## Step 5 – Blue team: fix it
 
 ```bash
-vagrant ssh target
-sudo bash exercises/02-portal-sqli/fix.sh
+vagrant upload exercises/02-portal-sqli/fix.sh /tmp/fix.sh target   # on the host
+vagrant ssh target                                                  # on the host
+sudo bash /tmp/fix.sh                                                # inside the VM
 ```
 
 This replaces the login query with a **prepared statement** (a real code

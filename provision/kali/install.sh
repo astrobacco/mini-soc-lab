@@ -7,6 +7,32 @@ source /opt/minisoc/lib.sh
 log "Installing attack tools"
 apt_install nmap nikto sqlmap hydra gobuster curl
 
+# KALI_GUI=true (lab.conf): a real XFCE desktop with Burp Suite, instead of
+# CLI tools only. Gated behind the flag since a desktop adds real install
+# time and disk/RAM (the Vagrantfile bumps KALI_MEMORY to >=4096 for this).
+# Autologin is console-only (VirtualBox's own GUI window, opened from the
+# host) - it never touches SSH or the network, so it doesn't reopen the
+# vagrant:vagrant network-reachable credential base.sh deliberately closed.
+if [ "${KALI_GUI:-false}" = "true" ]; then
+    log "KALI_GUI=true: installing the XFCE desktop, Burp Suite and guest additions"
+    apt_install kali-desktop-xfce lightdm burpsuite virtualbox-guest-x11
+
+    mkdir -p /etc/lightdm/lightdm.conf.d
+    cat > /etc/lightdm/lightdm.conf.d/50-minisoc-autologin.conf <<'EOF'
+# Mini-SOC: autologin straight to the desktop. Console-only (the
+# VirtualBox GUI window on the host) - not an SSH or network login, so
+# this doesn't reintroduce the vagrant:vagrant network-reachable
+# credential that base.sh locks everywhere else.
+[Seat:*]
+autologin-user=vagrant
+autologin-user-timeout=0
+EOF
+    systemctl set-default graphical.target
+    systemctl enable lightdm >/dev/null
+else
+    log "KALI_GUI=false: staying CLI-only (no desktop installed)"
+fi
+
 # Older builds of this lab shipped a dvwa-bruteforce.py workaround script -
 # no longer needed since the current target app's login has no CSRF token
 # for hydra to fight. Clean up the stale copy so a re-provisioned VM
@@ -64,8 +90,17 @@ Then check what Suricata/Wazuh raised:
   - DFIR-IRIS (https://localhost:8445): level >= 10 alerts become cases
     automatically, with your IP as an indicator and target as the asset.
 See the README's "Red team exercise" section for the full walkthrough.
+
+If KALI_GUI=true in lab.conf, a desktop is also installed with Burp Suite
+on it - everything above works just as well driven through Burp's
+Proxy/Repeater instead of curl/sqlmap (set the browser proxy to
+127.0.0.1:8080 and install Burp's CA cert to intercept target traffic).
 TXT
 chown vagrant:vagrant /home/vagrant/EXERCISES.txt
 
 rm -rf /tmp/minisoc-kali
-log "Kali ready (10.10.66.10), exercises in ~/EXERCISES.txt"
+if [ "${KALI_GUI:-false}" = "true" ]; then
+    log "Kali ready (10.10.66.10), desktop + Burp Suite installed, exercises in ~/EXERCISES.txt"
+else
+    log "Kali ready (10.10.66.10), CLI tools only, exercises in ~/EXERCISES.txt"
+fi

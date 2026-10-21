@@ -228,15 +228,22 @@ Vagrant.configure("2") do |config|
     config.vm.define "kali" do |k|
       k.vm.box = "kalilinux/rolling"
       k.vm.hostname = "kali"
-      vm_resources(k, "kali", conf("KALI_MEMORY", "2048").to_i, conf("KALI_CPUS", "2").to_i)
+      # KALI_GUI=true also installs a real XFCE desktop + Burp Suite (see
+      # provision/kali/install.sh) - a desktop needs real RAM, so bump the
+      # floor to 4096 automatically rather than relying on the user to also
+      # remember to raise KALI_MEMORY by hand.
+      kali_gui = conf("KALI_GUI", "false") == "true"
+      kali_memory = kali_gui ? [conf("KALI_MEMORY", "2048").to_i, 4096].max : conf("KALI_MEMORY", "2048").to_i
+      vm_resources(k, "kali", kali_memory, conf("KALI_CPUS", "2").to_i)
       k.vm.network "private_network", ip: "10.10.66.10", virtualbox__intnet: "minisoc-red"
       k.vm.provider "virtualbox" do |vb|
-        vb.gui = conf("KALI_GUI", "false") == "true"
-        vb.customize ["modifyvm", :id, "--vram", "64"]
+        vb.gui = kali_gui
+        vb.customize ["modifyvm", :id, "--vram", kali_gui ? "128" : "64"]
       end
       linux_base(k, "10.10.66.10", "10.10.66.1")
       k.vm.provision "kali-files", type: "file", source: "#{ROOT}/provision/kali", destination: "/tmp/minisoc-kali"
-      k.vm.provision "kali", type: "shell", path: "#{ROOT}/provision/kali/install.sh", env: PROVISION_ENV
+      k.vm.provision "kali", type: "shell", path: "#{ROOT}/provision/kali/install.sh",
+        env: PROVISION_ENV.merge("KALI_GUI" => kali_gui ? "true" : "false")
     end
   end
 end

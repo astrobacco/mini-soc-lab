@@ -38,9 +38,13 @@ of the lesson.
 
 ## Step 1 – Red cell: introduce the vulnerability
 
+There's no synced folder into the VMs, so upload the script first, then run
+it inside the VM:
+
 ```bash
-vagrant ssh target
-sudo bash exercises/01-ftp-webshell/enable-vulnerability.sh
+vagrant upload exercises/01-ftp-webshell/enable-vulnerability.sh /tmp/enable-vulnerability.sh target   # on the host
+vagrant ssh target                                                                                      # on the host
+sudo bash /tmp/enable-vulnerability.sh                                                                  # inside the VM
 ```
 
 This writes a `/etc/vsftpd.conf` with `anonymous_enable=YES`,
@@ -190,8 +194,9 @@ write-up should have before calling a vulnerability confirmed.
 ## Step 5 – Blue team: fix it
 
 ```bash
-vagrant ssh target
-sudo bash exercises/01-ftp-webshell/fix.sh
+vagrant upload exercises/01-ftp-webshell/fix.sh /tmp/fix.sh target   # on the host
+vagrant ssh target                                                   # on the host
+sudo bash /tmp/fix.sh                                                # inside the VM
 ```
 
 This removes the planted web shell(s) and the `uploads` folder, and

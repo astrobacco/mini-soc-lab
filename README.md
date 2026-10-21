@@ -19,7 +19,7 @@ watching it get caught.** Everything below is the full reference.
 | `soc` | Greenbone CE + DFIR-IRIS | Vulnerability scanning · alert and case management |
 | `sensor` | Suricata | Network IDS, listens silently on the server network |
 | `target` | Ubuntu + Apache, disguised as a normal site, hand-written vulnerable portal hidden underneath | Practice server (the victim) |
-| `kali` | Kali Linux | Attacker for red team exercises |
+| `kali` | Kali Linux | Attacker for red team exercises - CLI tools by default, or a full desktop + Burp Suite with `KALI_GUI=true` in `lab.conf` |
 
 Serious Wazuh alerts (level 10+) automatically become alerts in DFIR-IRIS, with
 the attacker IP and the affected machine already filled in.
@@ -232,6 +232,23 @@ automated tool's) is a genuinely interesting exception – see
 steps as a cheat sheet. `nmap`, `nikto`, `sqlmap`, `hydra` and `gobuster`
 are pre-installed there, along with `~/passwords.txt` for the login
 brute force.
+
+### Using a GUI tool instead (Burp Suite)
+
+`kali` is CLI-only by default – no desktop, nothing to click. Set
+`KALI_GUI=true` in [`lab.conf`](lab.conf) before building (or run
+`vagrant provision kali && vagrant reload kali` on an already-built lab)
+to get a real XFCE desktop with Burp Suite installed, auto-logged in when
+the VM's VirtualBox window opens. Point the browser's proxy at
+`127.0.0.1:8080`, install Burp's CA certificate to intercept `target`'s
+traffic, and every exercise above works the same way driven through
+Burp's Proxy/Repeater instead of `curl`/`sqlmap` – same detections land
+in Wazuh either way, since it's the same HTTP requests either way. A
+desktop needs real resources, so this also raises `kali`'s memory to at
+least 4096 MB automatically; the autologin is console-only (the
+VirtualBox GUI window on the host), never reachable over the network, so
+it doesn't reopen the `vagrant:vagrant` credential `base.sh` locks
+everywhere else.
 
 ## Guided blue-team exercises
 
