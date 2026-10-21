@@ -213,9 +213,8 @@ Open the Wazuh dashboard (`https://localhost:8444`) → **Discover**, with
 the `wazuh-alerts-*` index pattern selected, and filter by rule group
 `minisoc_ids` or `web` – a port scan shows up as "Possible network scan",
 `hydra`'s login brute force as "Possible brute force attack against the
-DVWA login page" (rule group `minisoc_web_brute_force` – the rule name is
-a holdover from when this exercise ran against DVWA; it still matches
-`/legacy/login.php` either way), and `sqlmap`'s automated SQL injection
+hidden portal's login page" (rule group `minisoc_web_brute_force`), and
+`sqlmap`'s automated SQL injection
 testing as a cluster of high-severity Suricata alerts plus Wazuh's own
 built-in `31103`/`31151` web-attack correlation rules. Anything level 10
 or higher appears automatically as a new alert in DFIR-IRIS

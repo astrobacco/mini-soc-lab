@@ -181,7 +181,7 @@ changes completely depending on *how* the login was attacked:
 | 2c (volume) | Wazuh correlation | `100110` – *"Possible network scan"* / `31151`/`31152` family | 10 | `sqlmap`'s request volume alone trips the existing frequency-based correlation rules. |
 | 2d (upload) | File-integrity monitoring | `554` – *"File added to the system"* | 5 | `/var/www/html/legacy/uploads/shell.php` appears, owned by `www-data`. |
 | 2d (upload) | Suricata | `100100`, three separate signatures (*"PHP tags in HTTP POST"*, *"Suspicious PHP Code in HTTP POST"*, *"SQL Injection (exec) in HTTP Request Body"*) | 12 | The webshell's own source code (`shell_exec`, `<?php`) matches generic code-injection signatures, independent of FIM. |
-| 2e (`hydra`) | Apache access log (custom rule, chained onto the same family that already exists for the main README's DVWA-era login brute force) | `100129` → `100130` | 3 → 10 | The exact same request-volume correlation already built earlier in this project – reused as-is, no new rule needed, since it just matches POSTs to `/legacy/login.php`. |
+| 2e (`hydra`) | Apache access log (custom rule, request-volume correlation on POSTs to `/legacy/login.php`, built earlier in this project for its original login-brute-force exercise) | `100129` → `100130` | 3 → 10 | The exact same correlation already built earlier in this project – reused as-is, no new rule needed, since it just matches POSTs to `/legacy/login.php`. |
 
 Every row except the first forwards automatically to **DFIR-IRIS**
 (`https://localhost:8445`) – in this real run, alerts landed as #5915,

@@ -97,14 +97,25 @@ point of the exercise (see its own README for why).
 - The dashboard can take 10–20 seconds to reflect a very recent alert;
   it's not real-time to the second.
 - **If the dashboard is a wall of "multiple web server 400 error codes" /
-  "multiple common web attacks" / "multiple XSS attempts" / Suricata
+  "multiple common web attacks" / "multiple XSS attempts" / "Shellshock
+  attack detected" / "brute force... non existent user" / Suricata
   log4j-and-XSS alerts and almost nothing else is visible**: that's
   Greenbone (`soc`, `10.10.10.20`) scanning `target` – its vulnerability
   checks look exactly like an attacker to the stock correlation rules,
   and a single "Full and fast" scan can generate thousands of them. This
   is now tuned down by design (custom rules 100100/100101/100110 plus the
-  complete 100122–100128 family) rather than removed entirely, so it
-  stays visible at a low level – labelled, in the `minisoc_scanner_noise`
-  group – instead of escalating to DFIR-IRIS as if it were a real
-  incident. If you're still seeing it flood the screen, make sure `wazuh`
-  has been reprovisioned since these rules were added.
+  100122–100128 and 100131–100133 families) rather than removed entirely,
+  so it stays visible at a low level – labelled, in the
+  `minisoc_scanner_noise` group – instead of escalating to DFIR-IRIS as
+  if it were a real incident. If you're still seeing it flood the screen,
+  make sure `wazuh` has been reprovisioned since these rules were added.
+- **If "multiple web server 400 error codes" (rule `31151`) or "Possible
+  brute force attack against the portal login page" (`100130`) keep
+  re-appearing dozens of times for the *same* run**: that's expected if
+  the source is `kali` (your own attacker), not Greenbone – a real
+  `gobuster` directory scan sends thousands of requests and most 404, and
+  a sustained `hydra`/Burp Intruder run sends dozens of login POSTs, so
+  the underlying frequency-correlation rule genuinely re-crosses its
+  threshold again and again for as long as the scan runs. Each one is a
+  real, distinct match, not a duplicate – that volume *is* what a real
+  directory brute force or login brute force looks like to a SIEM.
