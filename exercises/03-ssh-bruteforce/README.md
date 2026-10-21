@@ -36,13 +36,15 @@ accounts are a disproportionately common real-world way in.
 
 ## Step 1 – Red cell: introduce the vulnerability
 
-There's no synced folder into the VMs, so upload the script first, then run
-it inside the VM:
+There's no synced folder into the VMs, so upload this whole exercise
+folder once (both `enable-vulnerability.sh` and `fix.sh` land together,
+in their own directory - nothing loose dropped into `/tmp`, nothing to
+confuse with another exercise's files of the same name):
 
 ```bash
-vagrant upload exercises/03-ssh-bruteforce/enable-vulnerability.sh /tmp/enable-vulnerability.sh target   # on the host
-vagrant ssh target                                                                                        # on the host
-sudo bash /tmp/enable-vulnerability.sh                                                                    # inside the VM
+vagrant upload exercises/03-ssh-bruteforce /tmp/03-ssh-bruteforce target   # on the host
+vagrant ssh target                                                         # on the host
+sudo bash /tmp/03-ssh-bruteforce/enable-vulnerability.sh                   # inside the VM
 ```
 
 This creates the `service` account (password `service`) and drops an
@@ -208,10 +210,12 @@ good as the assumptions baked into how it probes.
 
 ## Step 5 – Blue team: fix it
 
+Re-uses the same upload from Step 1 (re-run it if you've since rebooted or
+destroyed `target`):
+
 ```bash
-vagrant upload exercises/03-ssh-bruteforce/fix.sh /tmp/fix.sh target   # on the host
-vagrant ssh target                                                     # on the host
-sudo bash /tmp/fix.sh                                                  # inside the VM
+vagrant ssh target                              # on the host
+sudo bash /tmp/03-ssh-bruteforce/fix.sh          # inside the VM
 ```
 
 This removes the per-account sshd override and locks the `service`

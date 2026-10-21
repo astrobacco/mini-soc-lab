@@ -215,13 +215,16 @@ for a third, different reason worth tracing down in the exercise itself.
 - **Just stop for the day**: `./setup.sh stop` (keeps everything built),
   `./setup.sh` to resume later – starts in seconds, doesn't rebuild.
 - **Reset the exercise you just ran**: there's no synced folder into the
-  VMs, so upload the script first, then run it inside the VM:
+  VMs, so upload the whole exercise folder first (both `enable-vulnerability.sh`
+  and `fix.sh` land together, in their own directory), then run `fix.sh`
+  inside the VM:
   ```bash
-  vagrant upload exercises/01-ftp-webshell/fix.sh /tmp/fix.sh target   # on the host
-  vagrant ssh target                                                   # on the host
-  sudo bash /tmp/fix.sh                                                # inside the VM
+  vagrant upload exercises/01-ftp-webshell /tmp/01-ftp-webshell target   # on the host
+  vagrant ssh target                                                     # on the host
+  sudo bash /tmp/01-ftp-webshell/fix.sh                                  # inside the VM
   ```
-  restores the clean state.
+  restores the clean state (swap the exercise name for `02-portal-sqli` or
+  `03-ssh-bruteforce` to reset one of those instead).
 - **Full teardown**: `./setup.sh destroy` (asks first; deletes all VMs,
   keeps your generated lab password for next time).
 
