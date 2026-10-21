@@ -68,8 +68,9 @@ search bar (KQL-style):
 | File-integrity (new/changed files on `target`'s web root) | `rule.groups: syscheck` (added = rule `554`, modified = `550`, deleted = `553`) |
 | Anonymous FTP login (exercise 01) | `rule.id: 100120` |
 | PHP web shell uploaded via FTP (exercise 01) | `rule.id: 100121` |
-| Brute force against the hidden DVWA login (`/legacy/login.php`) | `rule.id: 100130` |
-| SQL injection caught by Suricata (exercise 02) | `rule.id: 100100` |
+| Brute force against the hidden portal login (`/legacy/login.php`) | `rule.id: 100130` |
+| SQL injection attempt, logged but below the IRIS threshold (exercise 02, a single manual request) | `rule.id: 31103` |
+| SQL injection caught by Suricata (exercise 02, automated e.g. `sqlmap`) | `rule.id: 100100` |
 | SSH brute force (exercise 03, Wazuh's built-in rule) | `rule.id: 5763` |
 | Only alerts from one agent | `agent.name: target` (or `sensor`) |
 | Only alerts that got forwarded to IRIS | `rule.level >= 10` |
@@ -90,7 +91,7 @@ point of the exercise (see its own README for why).
 ## Things that are *not* bugs
 
 - A handful of `apache`/web-server alerts at low levels during normal use
-  of the DVWA app hidden at `/legacy/` are expected noise, not incidents.
+  of the portal app hidden at `/legacy/` are expected noise, not incidents.
 - Wazuh's own `000` (server) agent entry is itself, not a monitored host –
   ignore it.
 - The dashboard can take 10–20 seconds to reflect a very recent alert;

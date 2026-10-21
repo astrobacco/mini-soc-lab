@@ -18,7 +18,7 @@ watching it get caught.** Everything below is the full reference.
 | `wazuh` | Wazuh | SIEM: collects logs and alerts, correlates, raises alarms |
 | `soc` | Greenbone CE + DFIR-IRIS | Vulnerability scanning · alert and case management |
 | `sensor` | Suricata | Network IDS, listens silently on the server network |
-| `target` | Ubuntu + Apache + DVWA, disguised as a normal site | Practice server (the victim) |
+| `target` | Ubuntu + Apache, disguised as a normal site, hand-written vulnerable portal hidden underneath | Practice server (the victim) |
 | `kali` | Kali Linux | Attacker for red team exercises |
 
 Serious Wazuh alerts (level 10+) automatically become alerts in DFIR-IRIS, with
@@ -134,30 +134,32 @@ A quick walkthrough to show the lab working end to end, attacker to case
 file. `target`'s front page (`http://localhost:8446/` from your host, or
 `http://10.10.20.10/` from inside the lab) is a normal-looking small
 defense/logistics contractor site – "Northgate Defense Systems" – with no
-hint of a training app anywhere in it. The actual vulnerable application
-(DVWA) is still there, fully functional, just not linked from anywhere:
-you have to find it, the way an attacker actually would.
+hint of a training app anywhere in it. The actual vulnerable application is
+still there, fully functional, just not linked from anywhere: you have to
+find it, the way an attacker actually would. It's a small, **hand-written**
+internal "Employee Portal", not a known training tool like DVWA (used in
+this lab until 2026-10-21) – see
+[`exercises/02-portal-sqli/`](exercises/02-portal-sqli/) for why.
 
 ### By hand, in your own browser
 
 1. Poke around `http://localhost:8446/` first – Home, About, Services,
    Contact. Nothing there points at anything vulnerable.
 2. Try guessing a path. `http://localhost:8446/legacy/` gets you in – an
-   old internal tool nobody decommissioned. Log in with `admin` /
-   `password` (found by brute force in the "as the attacker" walkthrough
-   below – given to you here so you can keep going by hand).
-3. Open **DVWA Security** (left menu) and confirm it says "Low" (the
-   lab's default) – if not, set it and submit.
-4. Open **SQL Injection** (left menu). Type `1' OR '1'='1` into the User
-   ID field and submit – the broken query returns every user instead of
-   one. That's the vulnerability: user input gets concatenated straight
-   into SQL with no sanitisation.
-5. Open **File Upload**. Any `.php` file is accepted with no checks –
-   upload one and you have a web shell; the Wazuh agent on `target`
-   watches `/var/www/html` in real time and alerts the instant the file
-   lands (`exercises/01-ftp-webshell` does the same thing in more depth,
-   over FTP instead of DVWA's own upload form, and shares the same web
-   root – a second forgotten problem on the same "real" site).
+   old internal tool nobody decommissioned: a login page for an "Employee
+   Portal".
+3. The login is injectable. Typing `' UNION SELECT 1,'admin','x'-- -` into
+   the **Username** field (any password) gets you straight in – no need to
+   know the real one. (The real password, `Welcome1`, is also just
+   guessable – see the "as the attacker" walkthrough below.)
+4. Once logged in, open **Submit a document** and upload any `.php` file –
+   no checks at all. Visit the file directly afterwards
+   (`/legacy/uploads/<filename>.php?c=whoami`) and it runs as a web shell;
+   the Wazuh agent on `target` watches `/var/www/html` in real time and
+   alerts the instant the file lands (`exercises/01-ftp-webshell` does the
+   same thing in more depth, over FTP instead of the portal's own upload
+   form, and shares the same web root – a second forgotten problem on the
+   same "real" site).
 
 ### As the attacker (`kali`), the realistic way
 
@@ -178,48 +180,49 @@ vagrant ssh kali
    ```bash
    gobuster dir -u http://10.10.20.10/ -w /usr/share/wordlists/dirb/common.txt
    ```
-   turns up `/legacy/` (the hidden DVWA) and, if `exercises/01-ftp-webshell`
+   turns up `/legacy/` (the hidden portal) and, if `exercises/01-ftp-webshell`
    is currently enabled, `/uploads/` too.
-4. **Brute-force the login**: `hydra`'s `http-post-form` module can't be
-   used as-is here – DVWA issues a fresh CSRF token on every page load and
-   invalidates it after one POST, so a tool that reuses one fixed token
-   for many attempts can't tell a wrong password from a stale token; every
-   attempt looks like a false "success". A bundled script does a proper
-   GET → extract-token → POST cycle per attempt instead, the way a real
-   attacker's own script would:
+4. **SQL injection, automated**: point `sqlmap` at the login form –
    ```bash
-   python3 ~/dvwa-bruteforce.py ~/passwords.txt
+   sqlmap -u "http://10.10.20.10/legacy/login.php?username=admin&password=x" \
+          --batch --dump -D portal -T users
    ```
-   finds `admin` / `password` in a handful of tries.
-5. **SQL injection, automated**: point `sqlmap` at the vulnerable page –
+   finds and confirms the injection, then dumps the real credentials
+   (`admin` / `Welcome1`) in under a second – no session cookie juggling
+   needed, unlike attacking DVWA's equivalent page earlier in this project.
+5. **Or just brute-force the login** – the portal has no CSRF token to
+   fight, so `hydra` works directly, no workaround script needed:
    ```bash
-   sqlmap -u "http://10.10.20.10/legacy/vulnerabilities/sqli/?id=1&Submit=Submit" \
-          --cookie="security=low; PHPSESSID=<a session id from your own login>" --batch
+   hydra -l admin -P ~/passwords.txt 10.10.20.10 http-post-form \
+         '/legacy/login.php:username=^USER^&password=^PASS^:F=Login failed'
    ```
-   (log in once via the browser first, copy the `PHPSESSID` cookie from
-   your browser's dev tools – DVWA needs a logged-in session either way).
+   finds `admin` / `Welcome1` in a handful of tries.
 
 ### Watch it land
 
 Open the Wazuh dashboard (`https://localhost:8444`) → **Discover**, with
 the `wazuh-alerts-*` index pattern selected, and filter by rule group
-`minisoc_ids` or `web` – a port scan shows up as
-"Possible network scan", the login brute force as "Possible brute force
-attack against the DVWA login page" (rule group `minisoc_web_brute_force`
-– five failed POSTs to `/legacy/login.php` from the same source in a
-minute), and the SQL injection and file upload as high-severity
-Suricata/web alerts. Anything level 10 or higher appears
-automatically as a new alert in DFIR-IRIS (`https://localhost:8445`) with
-the attacker's IP already filled in as an indicator of compromise and
-`target` as the affected asset – ready to be turned into a documented
-case. See [`docs/guides/wazuh.md`](docs/guides/wazuh.md) and
+`minisoc_ids` or `web` – a port scan shows up as "Possible network scan",
+`hydra`'s login brute force as "Possible brute force attack against the
+DVWA login page" (rule group `minisoc_web_brute_force` – the rule name is
+a holdover from when this exercise ran against DVWA; it still matches
+`/legacy/login.php` either way), and `sqlmap`'s automated SQL injection
+testing as a cluster of high-severity Suricata alerts plus Wazuh's own
+built-in `31103`/`31151` web-attack correlation rules. Anything level 10
+or higher appears automatically as a new alert in DFIR-IRIS
+(`https://localhost:8445`) with the attacker's IP already filled in as an
+indicator of compromise and `target` as the affected asset – ready to be
+turned into a documented case. See
+[`docs/guides/wazuh.md`](docs/guides/wazuh.md) and
 [`docs/guides/dfir-iris.md`](docs/guides/dfir-iris.md) if you're not sure
-where to look.
+where to look. A single, hand-crafted SQLi request (rather than an
+automated tool's) is a genuinely interesting exception – see
+[`exercises/02-portal-sqli/`](exercises/02-portal-sqli/) for why.
 
 `~/EXERCISES.txt` on the `kali` VM has the short version of the attacker
 steps as a cheat sheet. `nmap`, `nikto`, `sqlmap`, `hydra` and `gobuster`
-are pre-installed there, along with `~/dvwa-bruteforce.py` and
-`~/passwords.txt` for the login brute force.
+are pre-installed there, along with `~/passwords.txt` for the login
+brute force.
 
 ## Guided blue-team exercises
 
@@ -235,12 +238,15 @@ of what a SOC actually watches.
   with a writable folder inside the web root leads to a PHP web shell and
   real code execution. Caught by Wazuh's file-integrity monitoring and two
   custom FTP rules, confirmed by Greenbone, fixed with one script.
-- [`exercises/02-dvwa-sqli/`](exercises/02-dvwa-sqli/) – a single `curl`
-  request with a classic `UNION SELECT` payload dumps the hidden DVWA's
-  entire user table. Caught by Suricata reading the raw packet, not by any
-  log or file change - and, honestly, *not* confirmable by Greenbone, since
-  an app-specific logic flaw isn't something a generic vulnerability
-  scanner can fingerprint. Fixed by changing DVWA's security level.
+- [`exercises/02-portal-sqli/`](exercises/02-portal-sqli/) – a hand-written
+  internal login (not DVWA) is vulnerable to a classic SQL injection auth
+  bypass and a weak password, with an unrestricted file upload once you're
+  in. A single crafted request is almost invisible to this stack; the
+  *same* bug probed automatically with `sqlmap` lights up Suricata and
+  Wazuh's own correlation rules immediately - a genuinely honest,
+  not-staged gap in what gets detected. Not confirmable by Greenbone
+  either, same reasoning as before. Fixed with a prepared statement and a
+  file-extension allowlist.
 - [`exercises/03-ssh-bruteforce/`](exercises/03-ssh-bruteforce/) – a
   forgotten "service" account with a weak password lets `hydra` brute-force
   its way in over SSH. Caught by Wazuh's *built-in* SSH rules - no custom

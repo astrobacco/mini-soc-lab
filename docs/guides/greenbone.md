@@ -80,13 +80,14 @@ leaving only the generic, non-actionable "FTP Banner Detection" and "FTP
 Unencrypted Cleartext Login" informational items. That disappearance is
 your proof the fix actually worked, independent of Wazuh.
 
-## After running `exercises/02-dvwa-sqli` or `exercises/03-ssh-bruteforce`
+## After running `exercises/02-portal-sqli` or `exercises/03-ssh-bruteforce`
 
 Unlike exercise 01, **neither of these shows up in a Greenbone scan, even
 with the vulnerability live** – and that's correct, expected behaviour,
 not a broken scan. See each exercise's own README (Step 4 in both) for
-why: exercise 02's SQL injection is an application-specific logic flaw no
-generic scanner can fingerprint, and exercise 03's weak SSH account is
+why: exercise 02's login-bypass SQL injection and unrestricted file
+upload are application-specific logic flaws no generic scanner can
+fingerprint, and exercise 03's weak SSH account is
 hidden from Greenbone's own SSH credential-check NVT by exactly how it's
 scoped (the NVT only tests credentials if a *random, invalid* username
 gets offered a password, and this account deliberately isn't that). Don't
@@ -102,5 +103,5 @@ design.
   thin on a brand-new lab, wait a bit and rescan.
 - A scan stuck at a specific percentage for several minutes, especially
   in the 90s – see the timing note above.
-- Zero findings after `exercises/02-dvwa-sqli` or
+- Zero findings after `exercises/02-portal-sqli` or
   `exercises/03-ssh-bruteforce` – see above, that's the point of those two.

@@ -84,35 +84,36 @@ understand what's actually broken before automating anything.
    says "training app" anywhere. That's the point: a real target doesn't
    announce what's wrong with it either.
 2. Try **http://localhost:8446/legacy/** directly. That gets you in – an
-   old internal tool (it's DVWA, Damn Vulnerable Web Application, a
-   well-known deliberately-broken training app) that nobody
-   decommissioned. Log in as `admin` / `password` (found by brute force
-   in step 5 – given to you here so you can keep going by hand).
-3. Left menu → **DVWA Security**. It should already say "Low" (that's the
-   lab's default) – if not, set it to Low and submit.
-4. Left menu → **SQL Injection**. There's one text box, "User ID". Type:
+   old internal tool nobody decommissioned: a login page for an "Employee
+   Portal". It's a small app hand-written for this lab, not a known
+   training tool – see [`exercises/02-portal-sqli/`](../exercises/02-portal-sqli/README.md)
+   for why that matters.
+3. Its login is injectable. In the **Username** field, type:
    ```
-   1' OR '1'='1
+   ' UNION SELECT 1,'admin','x'-- -
    ```
-   and submit. Instead of one user, you get every user in the database
-   back. That's the vulnerability: whatever you type gets pasted directly
-   into a SQL query with no checks at all.
-5. Left menu → **File Upload**. Any file is accepted, including a `.php`
-   one – meaning you could upload a program that runs on the server, not
-   just a picture. Don't need to try this here; `exercises/01-ftp-webshell`
-   (step 8 below) walks through exactly this, over FTP instead, start to
-   finish including the fix – and lands in the same web root, at
-   `/uploads/`, a second forgotten problem on the same "real" site.
+   leave the password blank (or anything), and submit. You're logged in –
+   no password needed. That's the vulnerability: whatever you type gets
+   pasted directly into a SQL query with no checks at all, and that query
+   decides whether you're allowed in.
+4. Once in, open **Submit a document** and upload any file, including a
+   `.php` one – no checks at all, meaning you could upload a program that
+   runs on the server, not just a document. Don't need to try this here;
+   `exercises/01-ftp-webshell` (step 8 below) walks through exactly this,
+   over FTP instead, start to finish including the fix – and lands in the
+   same web root, at `/uploads/`, a second forgotten problem on the same
+   "real" site.
 
 That's it – you just found and exploited a real, common vulnerability
-class (SQL injection) by hand, no tools beyond a web browser. In step 5
-you'll do the "finding it" part properly, with actual recon tools instead
-of just guessing the path or already knowing the password.
+class (SQL injection, used here to bypass a login rather than just dump
+data) by hand, no tools beyond a web browser. In step 5 you'll do the
+"finding it" part properly, with actual recon tools instead of just
+guessing the path.
 
 ## 5. The same attack, as an actual attacker
 
-Now do recon and the same SQLi from `kali`, the way a real attacker would
-– over the network, through the firewall, with real tools:
+Now do recon and the same attack from `kali`, the way a real attacker
+would – over the network, through the firewall, with real tools:
 
 ```bash
 vagrant ssh kali
@@ -122,24 +123,29 @@ gobuster dir -u http://10.10.20.10/ -w /usr/share/wordlists/dirb/common.txt
 # turns up /legacy/ - the hidden app you logged into by hand in step 4
 ```
 
-Then brute-force the login instead of just typing in the password you
-already know. `hydra`'s `http-post-form` module can't be used as-is here
-– DVWA issues a fresh CSRF token on every page load and invalidates it
-after one POST, so a tool that reuses one fixed token for many attempts
-can't tell a wrong password from a stale token; every attempt looks like
-a false "success". A bundled script does a proper GET → extract-token →
-POST cycle per attempt instead, the way a real attacker's own script
-would:
+Automate the SQL injection instead of typing the payload by hand:
 
 ```bash
-python3 ~/dvwa-bruteforce.py ~/passwords.txt
+sqlmap -u "http://10.10.20.10/legacy/login.php?username=admin&password=x" \
+       --batch --dump -D portal -T users
 ```
 
-finds `admin` / `password` in a handful of tries.
+`sqlmap` finds and confirms the injection, then dumps the real
+credentials (`admin` / `Welcome1`) straight out of the database, in under
+a second. Or just brute-force the login instead – the portal has no CSRF
+token to fight (unlike DVWA, used in this lab until 2026-10-21), so
+`hydra` works directly, no workaround script needed:
 
-`~/EXERCISES.txt` on `kali` has a short cheat sheet including an automated
-`sqlmap` run against the same SQL injection page. `nmap`, `nikto`,
-`sqlmap`, `hydra` and `gobuster` are all pre-installed there.
+```bash
+hydra -l admin -P ~/passwords.txt 10.10.20.10 http-post-form \
+      '/legacy/login.php:username=^USER^&password=^PASS^:F=Login failed'
+```
+
+finds `admin` / `Welcome1` in a handful of tries.
+
+`~/EXERCISES.txt` on `kali` has a short cheat sheet including the same
+`sqlmap` run against the login page. `nmap`, `nikto`, `sqlmap`, `hydra`
+and `gobuster` are all pre-installed there.
 
 ## 6. Watching it get caught
 
@@ -147,8 +153,9 @@ Open **Wazuh** (`https://localhost:8444`) → **Discover** (in the left
 menu) → select the **`wazuh-alerts-*`** index pattern if it isn't already
 selected. Widen the time range in the top-right corner if it looks empty
 (defaults to the last 15 minutes). You should see entries like "Common
-web attack", "Web server 400 error code", or "Possible brute force attack
-against the DVWA login page" with a timestamp matching what you just did.
+web attack", "Web server 400 error code", "SQL injection attempt", or
+"Possible brute force attack against the portal login page" with a
+timestamp matching what you just did.
 Click one to expand it and see exactly what Wazuh saw.
 
 Anything Wazuh rates level 10 or higher gets forwarded automatically to
@@ -166,8 +173,10 @@ Open **Greenbone** (`https://localhost:9392`) → **Scans → Tasks** → start
 **"Scan target (incident response)"**. Takes about 20 minutes (it sits at
 94–98% for most of that – normal, not stuck). When it's done, open
 **Scans → Reports** and sort by severity – it independently confirms
-things like DVWA's weak security and any misconfigurations, the same way
-a real vulnerability assessment would. Full guide:
+things like the anonymous FTP misconfiguration from step 8 below, the
+same way a real vulnerability assessment would (it does **not** catch the
+portal's SQL injection or upload flaw – see step 8, those are
+application-logic bugs no generic scanner can fingerprint). Full guide:
 [`docs/guides/greenbone.md`](guides/greenbone.md).
 
 ## 8. A deeper exercise: attack → detect → confirm → fix → verify
@@ -183,13 +192,17 @@ remediates it, and a rescan proves it's actually fixed. Every number in
 that doc (alert IDs, severities, IRIS alert numbers) came from actually
 running it.
 
-[`exercises/02-dvwa-sqli/`](../exercises/02-dvwa-sqli/README.md) is the
-same loop with a deliberately different detection mechanism: a single
-`curl` request dumps DVWA's user table, caught by Suricata reading the
-raw packet rather than by any file change or log pattern – and, honestly,
-*not* confirmable by Greenbone, since an app-specific logic flaw isn't
-something a generic vulnerability scanner can fingerprint. Worth running
-right after 01 to see the contrast.
+[`exercises/02-portal-sqli/`](../exercises/02-portal-sqli/README.md) is the
+same loop with a deliberately different detection mechanism, against the
+hand-written "Employee Portal" app from step 4: a login-bypass SQL
+injection and an unrestricted file upload, with an honest twist – one
+single, hand-crafted bypass request is almost invisible to this whole
+stack (level 7, no Suricata hit at all), while the exact same bug run
+through `sqlmap` lights up a dozen-plus alerts across Suricata and
+Wazuh's correlation rules. Like exercise 01, Greenbone can't confirm
+either flaw – an app-specific logic bug isn't something a generic
+vulnerability scanner can fingerprint. Worth running right after 01 to
+see the contrast.
 
 [`exercises/03-ssh-bruteforce/`](../exercises/03-ssh-bruteforce/README.md)
 rounds the set out: a forgotten service account with a weak SSH password,
