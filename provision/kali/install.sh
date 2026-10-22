@@ -35,15 +35,35 @@ EOF
     # base.sh has already locked vagrant's password (no console password
     # exists that could ever unlock it again; recovering needs `vagrant ssh`
     # and `xfce4-screensaver-command --deactivate`, found the hard way).
-    # Disabled per-user via the standard XDG autostart override (a same-
-    # named file under ~/.config/autostart with Hidden=true) rather than
-    # touching the package's own /etc/xdg/autostart entry.
+    # The XDG autostart override below (Hidden=true) only stops xfce4-
+    # session's own startup pass from launching it - it does nothing against
+    # D-Bus service activation, a completely separate code path: anything
+    # that touches the org.xfce.ScreenSaver D-Bus name (xfce4-power-manager
+    # does, a few minutes into every session) makes dbus-daemon spawn it via
+    # /usr/share/dbus-1/services/org.xfce.ScreenSaver.service regardless of
+    # the autostart entry - caught live when it came back ~9 minutes after
+    # an otherwise-correct autologin, well past session startup. Since
+    # kali-desktop-xfce hard-depends on the package (can't just be removed)
+    # and both paths exec the exact same binary, the only fix that actually
+    # covers every path is neutering that binary itself: move the real one
+    # aside once, replace it with a no-op stub. Keep the autostart entry too
+    # - cheap, harmless, documents the intent at the session-startup layer.
     install -d -m 755 -o vagrant -g vagrant /home/vagrant/.config/autostart
     cat > /home/vagrant/.config/autostart/xfce4-screensaver.desktop <<'EOF'
 [Desktop Entry]
 Hidden=true
 EOF
     chown vagrant:vagrant /home/vagrant/.config/autostart/xfce4-screensaver.desktop
+
+    [ -f /usr/bin/xfce4-screensaver.real ] || mv /usr/bin/xfce4-screensaver /usr/bin/xfce4-screensaver.real
+    cat > /usr/bin/xfce4-screensaver <<'EOF'
+#!/bin/sh
+# Mini-SOC: neutered - vagrant's password is permanently locked, so a
+# locked session here has no unlock path. Real binary saved alongside as
+# xfce4-screensaver.real if ever genuinely needed. See CLAUDE.md gotchas.
+exit 0
+EOF
+    chmod 755 /usr/bin/xfce4-screensaver
 else
     log "KALI_GUI=false: staying CLI-only (no desktop installed)"
 fi
