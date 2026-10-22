@@ -35,6 +35,24 @@ if command -v nmcli >/dev/null && systemctl is-active --quiet NetworkManager; th
 [main]
 no-auto-default=${iface}
 CONF
+    # Belt and braces #2: Vagrant's own `private_network` plugin reconfigures
+    # this interface's IP on *every* `vagrant up` (even --no-provision, even
+    # just restarting an already-built VM) - not only at first boot. That
+    # reconfiguration happens through NetworkManager (a plain "<iface>"
+    # connection NM "assumes" from the already-applied state) and lands after
+    # this project's boot-time minisoc-route.service below, silently
+    # resetting the interface's routes while leaving the primary address
+    # alone - caught live (2026-10-22) when the route vanished again *after*
+    # minisoc-route.service had already run successfully once at boot. A
+    # NetworkManager dispatcher script reacts to every connection state
+    # change on every device, whenever it happens and whoever causes it, so
+    # it catches this (and any future retrigger) instead of only the one
+    # moment covered by `After=network-online.target`.
+    cat > /etc/NetworkManager/dispatcher.d/90-minisoc-route <<DISP
+#!/bin/sh
+ip route replace 10.10.0.0/16 via ${LAB_GATEWAY} dev ${iface} 2>/dev/null || true
+DISP
+    chmod 755 /etc/NetworkManager/dispatcher.d/90-minisoc-route
 elif command -v netplan >/dev/null && [ -d /etc/netplan ]; then
     cat > /etc/netplan/60-minisoc.yaml <<NETPLAN
 network:
