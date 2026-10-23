@@ -122,19 +122,26 @@ build() {
                 info "$vm: already built and running"
             else
                 info "$vm: already built - starting it"
-                if ! vagrant up "$vm" --no-provision > ".lab/$vm.log" 2>&1; then
-                    warn "$vm did not start on the first try (often a boot-time RCU stall under host load - see .lab/$vm.log) - powering it off and retrying once"
+                if ! timeout -k 10 300 vagrant up "$vm" --no-provision > ".lab/$vm.log" 2>&1; then
+                    warn "$vm did not start on the first try (a boot-time RCU stall under host load, or Vagrant's own post-boot network step hanging indefinitely with no timeout of its own - see .lab/$vm.log) - powering it off and retrying once"
                     VBoxManage controlvm "minisoc-$vm" poweroff >/dev/null 2>&1 || true
-                    vagrant up "$vm" --no-provision > ".lab/$vm.log" 2>&1 || fail "$vm did not start - see .lab/$vm.log"
+                    timeout -k 10 300 vagrant up "$vm" --no-provision > ".lab/$vm.log" 2>&1 || fail "$vm did not start - see .lab/$vm.log"
                 fi
             fi
             continue
         fi
         info "$vm: building ..."
         local start=$SECONDS
-        if ! vagrant up "$vm" --provision > ".lab/$vm.log" 2>&1; then
+        # A generous but bounded timeout: a stuck Vagrant step (seen in
+        # practice - its post-boot "Configuring and enabling network
+        # interfaces" step can hang indefinitely with no timeout of its own,
+        # even though the VM itself booted fine) would otherwise block this
+        # whole script forever instead of ever reaching the poweroff+retry
+        # logic above, since that logic only runs once `vagrant up` actually
+        # returns a failure - a hang that never returns never triggers it.
+        if ! timeout -k 30 2400 vagrant up "$vm" --provision > ".lab/$vm.log" 2>&1; then
             tail -20 ".lab/$vm.log"
-            fail "$vm failed after $(( (SECONDS - start) / 60 )) min - full log: .lab/$vm.log. Fix the cause and run ./setup.sh again."
+            fail "$vm failed or hung after $(( (SECONDS - start) / 60 )) min - full log: .lab/$vm.log. Fix the cause and run ./setup.sh again."
         fi
         touch ".lab/$vm.done"
         info "$vm: done in $(( (SECONDS - start) / 60 )) min"

@@ -68,30 +68,49 @@ NETPLAN
 fi
 
 # Belt and braces on every backend, not just systems with neither NetworkManager
-# nor netplan: a boot-time unit that unconditionally re-asserts the lab route
-# after the network is up. The nmcli/netplan declarative routes above are the
-# first line of defense and normally enough on their own, but a real incident
-# showed NetworkManager's declarative ipv4.routes silently not being applied
-# on an otherwise-successful boot (primary address present and correct, extra
-# route just missing, no error logged anywhere) - this unit is what makes that
-# self-healing on every subsequent boot instead of needing a manual
-# `vagrant provision` to notice and fix it each time.
+# nor netplan: re-assert the lab route on a recurring timer, not just once at
+# boot. A boot-time-only unit (the original 2026-10-21 fix) and a
+# NetworkManager dispatcher script reacting to connection-state changes (the
+# 2026-10-22 fix) both assume the route is only ever at risk at one knowable
+# moment or from one knowable kind of event - caught live (2026-10-23, right
+# before a demo) that it isn't: on kali this route can still vanish again
+# after both of those already ran successfully, with nothing in the logs
+# showing which mechanism wiped it (it doesn't line up with a dispatcher
+# action NM ever logs, so something is reconfiguring the interface without
+# going through an NM connection-state transition at all - most likely
+# Vagrant's own `private_network` plugin touching the interface directly).
+# Rather than needing to pin down exactly what does it and when, a timer that
+# cheaply re-applies the same idempotent `ip route replace` every 15 seconds
+# makes the actual trigger irrelevant - whatever wipes the route, it's back
+# within 15 seconds, indefinitely, not just during boot.
 cat > /etc/systemd/system/minisoc-route.service <<UNIT
 [Unit]
 Description=Mini-SOC: route lab networks via the firewall
-After=network-online.target
-Wants=network-online.target
 
 [Service]
 Type=oneshot
-RemainAfterExit=yes
 ExecStart=/usr/sbin/ip route replace 10.10.0.0/16 via ${LAB_GATEWAY} dev ${iface}
+UNIT
+cat > /etc/systemd/system/minisoc-route.timer <<TIMER
+[Unit]
+Description=Mini-SOC: periodically re-assert the lab route
+
+[Timer]
+OnBootSec=5s
+OnUnitActiveSec=15s
+Unit=minisoc-route.service
 
 [Install]
-WantedBy=multi-user.target
-UNIT
+WantedBy=timers.target
+TIMER
+# Clean up the old boot-only enablement (WantedBy=multi-user.target, no
+# longer in this unit's [Install] section) from a previous provisioning run,
+# so a re-provisioned VM doesn't keep a stale direct-at-boot symlink
+# alongside the new timer-driven one.
+rm -f /etc/systemd/system/multi-user.target.wants/minisoc-route.service
 systemctl daemon-reload
-systemctl enable --now minisoc-route.service >/dev/null
+systemctl enable --now minisoc-route.timer >/dev/null
+systemctl start minisoc-route.service >/dev/null
 
 # Every box (bento/ubuntu, kalilinux/rolling) ships with cloud-init's own
 # sshd_config.d/50-cloud-init.conf setting "PasswordAuthentication yes" and a
