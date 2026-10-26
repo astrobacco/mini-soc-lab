@@ -193,6 +193,21 @@ methods (log-based alerting and an active vulnerability scan) agreeing on
 the same root cause is exactly the kind of corroboration a real incident
 write-up should have before calling a vulnerability confirmed.
 
+**If exercise 02 is enabled at the same time** (not the normal one-exercise-
+at-a-time workflow, but confirmed live by actually doing it): the "FTP
+Writeable Directories" finding names a *second* path too –
+`/legacy/uploads`, exercise 02's own upload folder, not this exercise's.
+vsftpd's anonymous chroot here is the whole web root (`/var/www/html`), so
+any world-writable directory anywhere under it is reachable over anonymous
+FTP once this vulnerability is on, regardless of which exercise the
+directory belongs to – exercise 02's upload folder has to be writable by
+`www-data` for its own feature to work, and that's enough. A real attacker
+could drop a web shell straight into `/legacy/uploads/` over FTP alone,
+skipping the portal's login entirely. Not a bug in either exercise – it's
+what actually happens when both vulnerabilities are live on the same host
+at once, which is realistic and worth knowing, not something either
+`fix.sh` needs to account for on its own.
+
 ## Step 5 – Blue team: fix it
 
 Re-uses the same upload from Step 1 (re-run it if you've since rebooted or
