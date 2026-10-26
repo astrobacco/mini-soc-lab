@@ -72,6 +72,25 @@ done
 log "Checking the rule set"
 "${OSSEC}/bin/wazuh-analysisd" -t >/dev/null 2>&1 || { "${OSSEC}/bin/wazuh-analysisd" -t; die "rule/config test failed"; }
 
+# wazuh-manager.service ships with a 45s start timeout (systemd's
+# TimeoutStartSec) for a unit that sequentially starts ~13 sub-daemons
+# (apid, authd, db, execd, analysisd, remoted, logcollector, syscheckd,
+# monitord, modulesd, ...) - found live (2026-10-23) when host contention
+# during a multi-VM morning startup made it miss that window: systemd
+# killed the unit mid-sequence, leaving analysisd/authd/db/execd etc.
+# running as orphaned processes while remoted/logcollector/syscheckd never
+# started at all. The result looked fine at a glance (several wazuh
+# processes alive) but nothing reached the manager - agents stuck in an
+# enrollment-rejection loop since remoted wasn't listening on 1514, zero
+# new alerts for over an hour before anyone noticed. 180s is generous
+# without being unbounded (same "bounded, not infinite" lesson as
+# setup.sh's own `vagrant up` timeouts).
+mkdir -p /etc/systemd/system/wazuh-manager.service.d
+cat > /etc/systemd/system/wazuh-manager.service.d/90-minisoc-timeout.conf <<'EOF'
+[Service]
+TimeoutStartSec=180
+EOF
+systemctl daemon-reload
 systemctl restart wazuh-manager
 wait_for "Wazuh API" 180 bash -c "curl -sk -o /dev/null -w '%{http_code}' https://127.0.0.1:55000/ | grep -q 401"
 wait_for "Wazuh dashboard" 300 curl -sfk -o /dev/null https://127.0.0.1/app/login
