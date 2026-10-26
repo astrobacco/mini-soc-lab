@@ -286,3 +286,7 @@ of what a SOC actually watches.
 The full project documentation is in
 [`docs/MiniSOC_Documentation_EN.odt`](docs/MiniSOC_Documentation_EN.odt);
 the original proposal (German) is in [`docs/proposal/`](docs/proposal/).
+[`docs/PROBLEMS.md`](docs/PROBLEMS.md) is the complete, one-row-per-incident
+log of every real problem hit building and running this lab - the essay
+covers the same ground in a few summary sentences by category, this is the
+full list.
