@@ -18,6 +18,26 @@ if [ ! -x "${OSSEC}/bin/wazuh-control" ]; then
     apt-mark hold wazuh-indexer wazuh-manager wazuh-dashboard filebeat >/dev/null
 fi
 
+# wazuh-indexer.service (the OpenSearch backend behind the dashboard) ships
+# with systemd's 3-minute default TimeoutStartSec - a JVM-heavy service that
+# genuinely needs longer under host contention during a multi-VM morning
+# startup. Found live twice (2026-10-26, 2026-10-27): systemd killed it
+# mid-startup both times (status=143), leaving the dashboard stuck retrying
+# "connect ECONNREFUSED 127.0.0.1:9200" forever and showing "the Wazuh
+# dashboard server is not ready yet" - the manager itself was unaffected
+# both times, only the indexer missed its window. Same root cause and same
+# "generous but bounded" fix as the wazuh-manager timeout above, just a
+# longer bound since OpenSearch's own JVM warm-up is slower than the
+# manager's sub-daemon sequence even with no contention at all.
+mkdir -p /etc/systemd/system/wazuh-indexer.service.d
+cat > /etc/systemd/system/wazuh-indexer.service.d/90-minisoc-timeout.conf <<'EOF'
+[Service]
+TimeoutStartSec=300
+EOF
+systemctl daemon-reload
+systemctl is-active --quiet wazuh-indexer || systemctl restart wazuh-indexer
+wait_for "Wazuh indexer" 300 bash -c "curl -sk -o /dev/null -w '%{http_code}' https://127.0.0.1:9200 | grep -qE '^(200|401)$'"
+
 # ---------------------------------------------------------------- admin password
 log "Setting the dashboard 'admin' password to the lab password"
 PWTOOL=/usr/share/wazuh-indexer/plugins/opensearch-security/tools/wazuh-passwords-tool.sh
