@@ -123,6 +123,9 @@ that particular tool.
 ./setup.sh stop       # shut everything down (keeps the VMs)
 ./setup.sh            # start again / continue an interrupted build
 ./setup.sh destroy    # delete all VMs
+./setup.sh -v         # same as above, but streams Vagrant/provisioning
+                       # output live instead of only writing .lab/<vm>.log -
+                       # add -v/--verbose to any of the commands above
 vagrant ssh wazuh     # shell on a VM
 ```
 

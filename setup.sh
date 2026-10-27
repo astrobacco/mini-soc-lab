@@ -6,6 +6,13 @@
 #   ./setup.sh stop       shut all VMs down (keeps them)
 #   ./setup.sh destroy    delete all VMs (asks first)
 #
+# Add -v / --verbose to any command (e.g. ./setup.sh -v, ./setup.sh -v stop)
+# to also stream Vagrant/provisioning output live to the terminal while it's
+# being built, instead of only to .lab/<vm>.log - the default is terse on
+# purpose so a clean build doesn't scroll pages of provisioning output, but
+# that also means nothing shows while a step is slow or stuck; -v trades that
+# quiet for visibility into exactly what's running right now.
+#
 # Settings (which VMs, how much RAM, versions) live in lab.conf.
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -18,6 +25,30 @@ bold() { printf '\033[1m%s\033[0m\n' "$*"; }
 info() { printf '\033[1;34m==>\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33m==> WARNING:\033[0m %s\n' "$*"; }
 fail() { printf '\033[1;31m==> ERROR:\033[0m %s\n' "$*" >&2; exit 1; }
+
+# -v/--verbose can appear anywhere in the arguments; strip it out so the
+# command (up/status/stop/destroy) is still just "$1" below.
+VERBOSE=0
+args=()
+for a in "$@"; do
+    case "$a" in
+        -v|--verbose) VERBOSE=1 ;;
+        *) args+=("$a") ;;
+    esac
+done
+set -- "${args[@]+"${args[@]}"}"
+
+# Runs a command, always capturing its output to the given log file; with
+# -v/--verbose also streams it live to the terminal. Exit status is
+# preserved either way (this script sets pipefail at the top).
+run_logged() {
+    local log="$1"; shift
+    if [ "$VERBOSE" = 1 ]; then
+        "$@" 2>&1 | tee "$log"
+    else
+        "$@" > "$log" 2>&1
+    fi
+}
 
 # lab.conf values (environment variables win)
 conf() { local v="${!1:-}"; [ -n "$v" ] && { echo "$v"; return; }
@@ -122,10 +153,10 @@ build() {
                 info "$vm: already built and running"
             else
                 info "$vm: already built - starting it"
-                if ! timeout -k 10 300 vagrant up "$vm" --no-provision > ".lab/$vm.log" 2>&1; then
+                if ! run_logged ".lab/$vm.log" timeout -k 10 300 vagrant up "$vm" --no-provision; then
                     warn "$vm did not start on the first try (a boot-time RCU stall under host load, or Vagrant's own post-boot network step hanging indefinitely with no timeout of its own - see .lab/$vm.log) - powering it off and retrying once"
                     VBoxManage controlvm "minisoc-$vm" poweroff >/dev/null 2>&1 || true
-                    timeout -k 10 300 vagrant up "$vm" --no-provision > ".lab/$vm.log" 2>&1 || fail "$vm did not start - see .lab/$vm.log"
+                    run_logged ".lab/$vm.log" timeout -k 10 300 vagrant up "$vm" --no-provision || fail "$vm did not start - see .lab/$vm.log"
                 fi
             fi
             continue
@@ -139,8 +170,8 @@ build() {
         # whole script forever instead of ever reaching the poweroff+retry
         # logic above, since that logic only runs once `vagrant up` actually
         # returns a failure - a hang that never returns never triggers it.
-        if ! timeout -k 30 2400 vagrant up "$vm" --provision > ".lab/$vm.log" 2>&1; then
-            tail -20 ".lab/$vm.log"
+        if ! run_logged ".lab/$vm.log" timeout -k 30 2400 vagrant up "$vm" --provision; then
+            [ "$VERBOSE" = 1 ] || tail -20 ".lab/$vm.log"
             fail "$vm failed or hung after $(( (SECONDS - start) / 60 )) min - full log: .lab/$vm.log. Fix the cause and run ./setup.sh again."
         fi
         touch ".lab/$vm.done"
