@@ -59,8 +59,11 @@ EOF
     cat > /usr/bin/xfce4-screensaver <<'EOF'
 #!/bin/sh
 # Mini-SOC: neutered - vagrant's password is permanently locked, so a
-# locked session here has no unlock path. Real binary saved alongside as
-# xfce4-screensaver.real if ever genuinely needed. See CLAUDE.md gotchas.
+# locked session here has no unlock path. Disabling via the autostart
+# entry alone wasn't enough (xfce4-power-manager respawns it a few
+# minutes in via D-Bus service activation, a separate path entirely), so
+# both are closed by neutering the binary itself. Real binary saved
+# alongside as xfce4-screensaver.real if ever genuinely needed.
 exit 0
 EOF
     chmod 755 /usr/bin/xfce4-screensaver

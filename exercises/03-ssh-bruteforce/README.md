@@ -15,8 +15,10 @@ finding are real, not illustrative.
 **Vulnerability:** a dedicated `service` account on `target`, with the
 password `service`, carved out as a narrow exception to the lab-wide
 key-only SSH hardening that `provision/common/base.sh` otherwise enforces
-on every machine (see CLAUDE.md's `vagrant:vagrant` gotcha for why that
-hardening exists at all).
+on every machine (every Vagrant box ships a reachable `vagrant:vagrant`
+login by default - this lab locks that account and disables SSH password
+auth lab-wide, so `service` is a deliberate, narrow exception, not an
+oversight).
 
 **Root cause, in the fictional sysadmin's own words:** "We needed an
 account for the nightly backup script to SSH in under, and setting up SSH

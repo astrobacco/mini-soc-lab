@@ -27,8 +27,8 @@ the main [`README.md`](../README.md).
 ## 2. Build it
 
 ```bash
-git clone git@gitlab.ictwarrioracademy.ch:f.rechsteiner/minisoc-project.git
-cd minisoc-project
+git clone https://github.com/astrobacco/mini-soc-lab.git
+cd mini-soc-lab
 ./setup.sh
 ```
 

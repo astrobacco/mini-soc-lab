@@ -87,8 +87,8 @@ and the only way *in* is from your own computer:
 ## Quick start
 
 ```bash
-git clone git@gitlab.ictwarrioracademy.ch:f.rechsteiner/minisoc-project.git
-cd minisoc-project
+git clone https://github.com/astrobacco/mini-soc-lab.git
+cd mini-soc-lab
 ./setup.sh
 ```
 
